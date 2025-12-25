@@ -1,0 +1,77 @@
+# Backend Requirements - Direct Implementation (No ComfyUI)
+# Optimized for uv package manager
+# Deploy using WSL to avoid Windows encoding issues
+
+# ============================================================================
+# Core ML Framework
+# ============================================================================
+torch==2.5.1  # Pin version for compatibility with torchao 0.15.0 and diffusers 0.32.1
+torchvision==0.20.1  # Compatible with torch 2.5.1
+torchaudio==2.5.1  # Compatible with torch 2.5.1
+
+# ============================================================================
+# Diffusers & Transformers (for FLUX.2, Mochi, CogVideoX)
+# ============================================================================
+# Use stable versions that support FLUX.2
+diffusers==0.31.0  # Pin to exact version for stability
+transformers>=4.46.0,<4.47.0  # Need Mistral3ForConditionalGeneration for FLUX.2
+
+# ============================================================================
+# Optimizations & Quantization
+# ============================================================================
+torchao==0.7.0  # FP8 quantization for FLUX.2 (compatible with torch 2.5.1)
+accelerate>=0.34.0
+bitsandbytes>=0.43.0  # Optional INT8 quantization
+
+# ============================================================================
+# Audio Generation (MusicGen)
+# ============================================================================
+# TEMPORARILY DISABLED: audiocraft requires torch==2.1.0 (conflicts with torch 2.5.1)
+# TODO: Address torch version conflict or deploy audio generation separately
+# git+https://github.com/facebookresearch/audiocraft.git@main
+# scipy
+
+# ============================================================================
+# Video/Image Processing
+# ============================================================================
+imageio[ffmpeg]
+Pillow>=10.2.0
+opencv-python>=4.9.0
+safetensors>=0.4.0
+sentencepiece==0.2.0
+
+# ============================================================================
+# Modal SDK & API Framework
+# ============================================================================
+modal>=0.63.0
+fastapi>=0.109.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# ============================================================================
+# Storage (Cloudflare R2 - S3 compatible)
+# ============================================================================
+boto3>=1.34.0
+
+# ============================================================================
+# Database (Neon PostgreSQL)
+# ============================================================================
+psycopg2-binary>=2.9.0
+
+# ============================================================================
+# Event Handling (Inngest)
+# ============================================================================
+httpx>=0.26.0
+
+# ============================================================================
+# Utilities
+# ============================================================================
+huggingface-hub
+invisible-watermark
+peft>=0.13.0,<0.15.0  # Compatible with transformers 4.46.x
+python-dotenv>=1.0.0
+
+# ============================================================================
+# Monitoring
+# ============================================================================
+sentry-sdk>=1.40.0
