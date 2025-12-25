@@ -1,0 +1,73 @@
+{
+  "1": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "t5/google_t5-v1_1-xxl_encoderonly-fp8_e4m3fn.safetensors",
+      "type": "sd3"
+    }
+  },
+  "2": {
+    "class_type": "MochiTextEncode",
+    "inputs": {
+      "text": "{{PROMPT}}",
+      "num_embeds": 1,
+      "add_embed": false,
+      "clip": ["1", 0]
+    }
+  },
+  "3": {
+    "class_type": "MochiTextEncode",
+    "inputs": {
+      "text": "{{NEGATIVE_PROMPT}}",
+      "num_embeds": 1,
+      "add_embed": true,
+      "clip": ["1", 0]
+    }
+  },
+  "4": {
+    "class_type": "MochiModelLoader",
+    "inputs": {
+      "model": "mochi_preview_dit_GGUF_Q8_0.safetensors",
+      "precision": "fp8_e4m3fn",
+      "attention_mode": "comfy"
+    }
+  },
+  "5": {
+    "class_type": "MochiVAELoader",
+    "inputs": {
+      "vae_name": "mochi_preview_vae_bf16.safetensors"
+    }
+  },
+  "6": {
+    "class_type": "MochiSampler",
+    "inputs": {
+      "width": 848,
+      "height": 480,
+      "num_frames": 49,
+      "steps": 64,
+      "cfg": 4.5,
+      "seed": 42,
+      "positive": ["2", 0],
+      "negative": ["3", 0],
+      "model": ["4", 0]
+    }
+  },
+  "7": {
+    "class_type": "MochiDecode",
+    "inputs": {
+      "samples": ["6", 0],
+      "vae": ["5", 0]
+    }
+  },
+  "8": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "frame_rate": 30,
+      "loop_count": 0,
+      "filename_prefix": "mochi_output",
+      "format": "video/h264-mp4",
+      "save_output": true,
+      "images": ["7", 0]
+    }
+  }
+}

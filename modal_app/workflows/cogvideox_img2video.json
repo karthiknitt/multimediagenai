@@ -1,0 +1,325 @@
+{
+  "_meta": {
+    "workflow_name": "CogVideoX-5B 1.5 Image-to-Video",
+    "description": "Production workflow for CogVideoX-5B 1.5 image-to-video generation using ComfyUI-CogVideoXWrapper by Kijai",
+    "source": "https://github.com/kijai/ComfyUI-CogVideoXWrapper",
+    "custom_nodes_required": ["ComfyUI-CogVideoXWrapper", "ComfyUI-VideoHelperSuite", "ComfyUI-KJNodes"],
+    "model_requirements": {
+      "model": "kijai/CogVideoX-5b-1.5-I2V (auto-downloaded)",
+      "text_encoder": "google_t5-v1_1-xxl_encoderonly-fp8_e4m3fn.safetensors",
+      "note": "Model auto-downloads from HuggingFace on first run"
+    },
+    "vram_usage": "12-16GB (optimized with bf16)",
+    "output_specs": {
+      "resolution": "{{WIDTH}}x{{HEIGHT}} (default: 1360x768, resized to match model)",
+      "frames": "{{NUM_FRAMES}} (default: 49)",
+      "fps": "{{FPS}} (default: 16)",
+      "duration": "Calculated: NUM_FRAMES / FPS seconds"
+    }
+  },
+  "last_node_id": 64,
+  "last_link_id": 149,
+  "nodes": [
+    {
+      "id": 59,
+      "type": "DownloadAndLoadCogVideoModel",
+      "pos": {"0": 622, "1": -25},
+      "size": {"0": 315, "1": 218},
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {"name": "block_edit", "type": "TRANSFORMERBLOCKS", "link": null, "shape": 7},
+        {"name": "lora", "type": "COGLORA", "link": null, "shape": 7},
+        {"name": "compile_args", "type": "COMPILEARGS", "link": null, "shape": 7}
+      ],
+      "outputs": [
+        {"name": "model", "type": "COGVIDEOMODEL", "links": [144]},
+        {"name": "vae", "type": "VAE", "links": [132, 141], "slot_index": 1}
+      ],
+      "properties": {"Node name for S&R": "DownloadAndLoadCogVideoModel"},
+      "widgets_values": ["kijai/CogVideoX-5b-1.5-I2V", "bf16", "disabled", false, "sdpa", "main_device"]
+    },
+    {
+      "id": 20,
+      "type": "CLIPLoader",
+      "pos": {"0": -2, "1": 304},
+      "size": [451.31, 82],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{"name": "CLIP", "type": "CLIP", "links": [54], "slot_index": 0, "shape": 3}],
+      "properties": {"Node name for S&R": "CLIPLoader"},
+      "widgets_values": ["t5/google_t5-v1_1-xxl_encoderonly-fp8_e4m3fn.safetensors", "sd3"]
+    },
+    {
+      "id": 30,
+      "type": "CogVideoTextEncode",
+      "pos": {"0": 493, "1": 303},
+      "size": {"0": 471.90, "1": 168.08},
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 54}],
+      "outputs": [
+        {"name": "conditioning", "type": "CONDITIONING", "links": [145], "slot_index": 0, "shape": 3},
+        {"name": "clip", "type": "CLIP", "links": [149], "slot_index": 1}
+      ],
+      "properties": {"Node name for S&R": "CogVideoTextEncode"},
+      "widgets_values": ["{{PROMPT}}", 1, false]
+    },
+    {
+      "id": 31,
+      "type": "CogVideoTextEncode",
+      "pos": {"0": 497, "1": 520},
+      "size": {"0": 463.01, "1": 144},
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 149}],
+      "outputs": [
+        {"name": "conditioning", "type": "CONDITIONING", "links": [146], "slot_index": 0, "shape": 3},
+        {"name": "clip", "type": "CLIP", "links": null}
+      ],
+      "properties": {"Node name for S&R": "CogVideoTextEncode"},
+      "widgets_values": ["{{NEGATIVE_PROMPT}}", 1, true]
+    },
+    {
+      "id": 36,
+      "type": "LoadImage",
+      "pos": {"0": 335, "1": 731},
+      "size": {"0": 402.06, "1": 396.62},
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [71], "slot_index": 0, "shape": 3},
+        {"name": "MASK", "type": "MASK", "links": null, "shape": 3}
+      ],
+      "properties": {"Node name for S&R": "LoadImage"},
+      "widgets_values": ["{{SOURCE_IMAGE}}", "image"]
+    },
+    {
+      "id": 37,
+      "type": "ImageResizeKJ",
+      "pos": {"0": 784, "1": 731},
+      "size": {"0": 315, "1": 266},
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "image", "type": "IMAGE", "link": 71},
+        {"name": "get_image_size", "type": "IMAGE", "link": null, "shape": 7},
+        {"name": "width_input", "type": "INT", "link": null, "widget": {"name": "width_input"}},
+        {"name": "height_input", "type": "INT", "link": null, "widget": {"name": "height_input"}}
+      ],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [142], "slot_index": 0, "shape": 3},
+        {"name": "width", "type": "INT", "links": null, "shape": 3},
+        {"name": "height", "type": "INT", "links": null, "shape": 3}
+      ],
+      "properties": {"Node name for S&R": "ImageResizeKJ"},
+      "widgets_values": ["{{WIDTH}}", "{{HEIGHT}}", "lanczos", false, 16, 0, 0, "disabled"]
+    },
+    {
+      "id": 62,
+      "type": "CogVideoImageEncode",
+      "pos": {"0": 1149, "1": 711},
+      "size": {"0": 315, "1": 122},
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {"name": "vae", "type": "VAE", "link": 141},
+        {"name": "start_image", "type": "IMAGE", "link": 142},
+        {"name": "end_image", "type": "IMAGE", "link": null, "shape": 7}
+      ],
+      "outputs": [{"name": "samples", "type": "LATENT", "links": [147]}],
+      "properties": {"Node name for S&R": "CogVideoImageEncode"},
+      "widgets_values": [false, 0]
+    },
+    {
+      "id": 63,
+      "type": "CogVideoSampler",
+      "pos": {"0": 1142, "1": 74},
+      "size": {"0": 330, "1": 574},
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {"name": "model", "type": "COGVIDEOMODEL", "link": 144},
+        {"name": "positive", "type": "CONDITIONING", "link": 145},
+        {"name": "negative", "type": "CONDITIONING", "link": 146},
+        {"name": "samples", "type": "LATENT", "link": null, "shape": 7},
+        {"name": "image_cond_latents", "type": "LATENT", "link": 147, "shape": 7},
+        {"name": "context_options", "type": "COGCONTEXT", "link": null, "shape": 7},
+        {"name": "controlnet", "type": "COGVIDECONTROLNET", "link": null, "shape": 7},
+        {"name": "tora_trajectory", "type": "TORAFEATURES", "link": null, "shape": 7},
+        {"name": "fastercache", "type": "FASTERCACHEARGS", "link": null, "shape": 7}
+      ],
+      "outputs": [{"name": "samples", "type": "LATENT", "links": [148]}],
+      "properties": {"Node name for S&R": "CogVideoSampler"},
+      "widgets_values": ["{{NUM_FRAMES}}", "{{STEPS}}", "{{CFG_SCALE}}", "{{SEED}}", "fixed", "CogVideoXDDIM", 1]
+    },
+    {
+      "id": 60,
+      "type": "CogVideoDecode",
+      "pos": {"0": 1523, "1": -6},
+      "size": {"0": 315, "1": 198},
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {"name": "vae", "type": "VAE", "link": 132},
+        {"name": "samples", "type": "LATENT", "link": 148}
+      ],
+      "outputs": [{"name": "images", "type": "IMAGE", "links": [134]}],
+      "properties": {"Node name for S&R": "CogVideoDecode"},
+      "widgets_values": [true, 240, 360, 0.2, 0.2, true]
+    },
+    {
+      "id": 44,
+      "type": "VHS_VideoCombine",
+      "pos": {"0": 1884, "1": -6},
+      "size": [605.39, 310],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 134},
+        {"name": "audio", "type": "AUDIO", "link": null, "shape": 7},
+        {"name": "meta_batch", "type": "VHS_BatchManager", "link": null, "shape": 7},
+        {"name": "vae", "type": "VAE", "link": null, "shape": 7}
+      ],
+      "outputs": [{"name": "Filenames", "type": "VHS_FILENAMES", "links": null, "shape": 3}],
+      "properties": {"Node name for S&R": "VHS_VideoCombine"},
+      "widgets_values": {
+        "frame_rate": "{{FPS}}",
+        "loop_count": 0,
+        "filename_prefix": "{{OUTPUT_PREFIX}}",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "pingpong": false,
+        "save_output": true,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "{{OUTPUT_PREFIX}}_preview.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": "{{FPS}}"
+          },
+          "muted": false
+        }
+      }
+    }
+  ],
+  "links": [
+    [54, 20, 0, 30, 0, "CLIP"],
+    [71, 36, 0, 37, 0, "IMAGE"],
+    [132, 59, 1, 60, 0, "VAE"],
+    [134, 60, 0, 44, 0, "IMAGE"],
+    [141, 59, 1, 62, 0, "VAE"],
+    [142, 37, 0, 62, 1, "IMAGE"],
+    [144, 59, 0, 63, 0, "COGVIDEOMODEL"],
+    [145, 30, 0, 63, 1, "CONDITIONING"],
+    [146, 31, 0, 63, 2, "CONDITIONING"],
+    [147, 62, 0, 63, 4, "LATENT"],
+    [148, 63, 0, 60, 1, "LATENT"],
+    [149, 30, 1, 31, 0, "CLIP"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.76,
+      "offset": [716.71, 291.76]
+    }
+  },
+  "version": 0.4,
+  "_parameter_reference": {
+    "SOURCE_IMAGE": {
+      "type": "string",
+      "description": "Path or filename of the source image (loaded from ComfyUI input folder or URL)",
+      "example": "source_image.png",
+      "required": true
+    },
+    "PROMPT": {
+      "type": "string",
+      "description": "Text description of the desired motion/animation",
+      "example": "a majestic stag is grazing in an enhanced forest, basking in the setting sun filtered by the trees",
+      "required": true
+    },
+    "NEGATIVE_PROMPT": {
+      "type": "string",
+      "description": "What to avoid in the animation (leave empty for default)",
+      "default": "",
+      "required": false
+    },
+    "WIDTH": {
+      "type": "integer",
+      "description": "Video width in pixels (must be multiple of 16)",
+      "default": 1360,
+      "min": 720,
+      "max": 1920,
+      "required": true
+    },
+    "HEIGHT": {
+      "type": "integer",
+      "description": "Video height in pixels (must be multiple of 16)",
+      "default": 768,
+      "min": 480,
+      "max": 1080,
+      "required": true
+    },
+    "NUM_FRAMES": {
+      "type": "integer",
+      "description": "Number of frames to generate",
+      "default": 49,
+      "min": 25,
+      "max": 81,
+      "required": true
+    },
+    "FPS": {
+      "type": "integer",
+      "description": "Frames per second",
+      "default": 16,
+      "options": [8, 16, 24],
+      "required": true
+    },
+    "STEPS": {
+      "type": "integer",
+      "description": "Number of denoising steps (more = better quality, slower)",
+      "default": 25,
+      "min": 10,
+      "max": 50,
+      "required": true
+    },
+    "CFG_SCALE": {
+      "type": "float",
+      "description": "Classifier-free guidance scale (higher = more prompt adherence)",
+      "default": 6.0,
+      "min": 1.0,
+      "max": 15.0,
+      "required": true
+    },
+    "SEED": {
+      "type": "integer",
+      "description": "Random seed for reproducibility (0 for random)",
+      "default": 0,
+      "required": true
+    },
+    "OUTPUT_PREFIX": {
+      "type": "string",
+      "description": "Prefix for output filename",
+      "default": "cogvideox_i2v_output",
+      "required": true
+    }
+  }
+}

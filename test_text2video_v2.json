@@ -1,0 +1,11 @@
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440010",
+  "prompt": "A graceful cat walking in a garden, photorealistic",
+  "model": "mochi-1",
+  "parameters": {
+    "duration": 5.4,
+    "fps": 30,
+    "motion_strength": 0.7,
+    "seed": 123
+  }
+}

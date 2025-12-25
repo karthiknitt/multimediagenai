@@ -1,0 +1,12 @@
+{
+  "job_id": "3b7b3d0e-2dec-49e8-9d3b-d827a3017235",
+  "prompt": "A beautiful sunset over mountains, vibrant colors, photorealistic",
+  "model": "flux2-dev",
+  "parameters": {
+    "steps": 20,
+    "cfg_scale": 3.5,
+    "width": 1024,
+    "height": 1024,
+    "seed": 42
+  }
+}

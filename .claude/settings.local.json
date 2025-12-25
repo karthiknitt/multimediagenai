@@ -1,0 +1,92 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(timeout 10s pnpm dev:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run lint:fix:*)",
+      "Bash(timeout 30s pnpm dev:*)",
+      "Bash(pnpm db:push:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm dev:inngest:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(modal --version:*)",
+      "Bash(mkdir:*)",
+      "Bash(modal deploy:*)",
+      "Bash(export PYTHONIOENCODING=utf-8)",
+      "Bash(timeout 300 bash -c:*)",
+      "Bash(modal app:*)",
+      "Bash(modal --help:*)",
+      "Bash(modal serve:*)",
+      "Bash(npx claude-code-templates@latest --hook=development-tools/nextjs-code-quality-enforcer --yes)",
+      "Bash(dir:*)",
+      "Bash(ls:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm run build:*)",
+      "Skill(frontend-design)",
+      "Skill(frontend-design:*)",
+      "Bash(npm ls:*)",
+      "Bash(timeout 30s bash:*)",
+      "Bash(python -c \"\nimport boto3\nimport os\n\n# R2 credentials\naccount_id = ''27ff2bec75ad03d16fb004d0c44b8ce1''\naccess_key = ''b8e1415cc494945480926c31b11596f4''\nsecret_key = ''a6b837277577c97b888d0fe45f5b6cdd7fd2ef64dba6f5a10ac4755dd44237e8''\nbucket_name = ''img-vid-aud''\n\n# Create S3 client for R2\ns3 = boto3.client\\(\n    ''s3'',\n    endpoint_url=f''https://{account_id}.r2.cloudflarestorage.com'',\n    aws_access_key_id=access_key,\n    aws_secret_access_key=secret_key,\n    region_name=''auto''\n\\)\n\n# List all objects in bucket\ntry:\n    response = s3.list_objects_v2\\(Bucket=bucket_name\\)\n    \n    if ''Contents'' in response:\n        print\\(f''Found {len\\(response[\"\"Contents\"\"]\\)} files in bucket:''\\)\n        for obj in response[''Contents'']:\n            print\\(f\"\"  - {obj[''Key'']} \\({obj[''Size'']} bytes, {obj[''LastModified'']}\\)\"\"\\)\n    else:\n        print\\(''Bucket is empty''\\)\nexcept Exception as e:\n    print\\(f''Error: {e}''\\)\n\")",
+      "Bash(pip install:*)",
+      "Bash(python -c \"\nimport boto3\n\n# R2 credentials\naccount_id = ''27ff2bec75ad03d16fb004d0c44b8ce1''\naccess_key = ''b8e1415cc494945480926c31b11596f4''\nsecret_key = ''a6b837277577c97b888d0fe45f5b6cdd7fd2ef64dba6f5a10ac4755dd44237e8''\nbucket_name = ''img-vid-aud''\n\n# Create S3 client for R2\ns3 = boto3.client\\(\n    ''s3'',\n    endpoint_url=f''https://{account_id}.r2.cloudflarestorage.com'',\n    aws_access_key_id=access_key,\n    aws_secret_access_key=secret_key,\n    region_name=''auto''\n\\)\n\n# List all objects in bucket\ntry:\n    response = s3.list_objects_v2\\(Bucket=bucket_name\\)\n    \n    if ''Contents'' in response:\n        print\\(f''Found {len\\(response[\"\"Contents\"\"]\\)} files in bucket:''\\)\n        for obj in response[''Contents'']:\n            print\\(f\"\"  - {obj[''Key'']} \\({obj[''Size'']} bytes, {obj[''LastModified'']}\\)\"\"\\)\n    else:\n        print\\(''Bucket is empty - no files found''\\)\nexcept Exception as e:\n    print\\(f''Error: {e}''\\)\n\")",
+      "Bash(modal call status:*)",
+      "Bash(modal function logs:*)",
+      "Bash(modal run:*)",
+      "Bash(python:*)",
+      "Bash(modal volume:*)",
+      "Bash(set PYTHONIOENCODING=utf-8:*)",
+      "Bash(more:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(modal secret:*)",
+      "Bash(timeout 60 bash:*)",
+      "Bash(iconv:*)",
+      "Bash(timeout 10 bash:*)",
+      "Bash(pkill:*)",
+      "Bash(timeout 15 bash -c:*)",
+      "Bash(timeout 20 bash:*)",
+      "Bash(timeout 5 tail:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(timeout 30 bash:*)",
+      "Bash(pnpm drizzle-kit push:*)",
+      "Bash(pnpm list:*)",
+      "Bash(node -e:*)",
+      "Bash(node check-tables.mjs:*)",
+      "Bash(node check-user-columns.mjs:*)",
+      "Bash(node check-auth-tables.mjs:*)",
+      "Bash(node reset-auth-schema.mjs:*)",
+      "Bash(modal function list:*)",
+      "Bash(wsl:*)",
+      "Bash(node:*)",
+      "Bash(python3 -m modal function logs:*)",
+      "Bash(timeout 120 bash:*)",
+      "Bash(timeout 180 bash:*)",
+      "Bash(python3:*)",
+      "Bash(timeout 40 bash:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'input=$(cat); FILE_PATH=$(echo \"$input\" | jq -r \".tool_input.file_path // empty\"); SUCCESS=$(echo \"$input\" | jq -r \".tool_response.success // false\"); if [ \"$SUCCESS\" = \"true\" ] && [[ \"$FILE_PATH\" =~ \\.(js|jsx|ts|tsx)$ ]] && [[ ! \"$FILE_PATH\" =~ node_modules ]]; then echo \"🔍 Next.js Code Quality Enforcer: Reviewing $FILE_PATH...\"; ISSUES=0; if [ -f \"$FILE_PATH\" ]; then if [[ \"$FILE_PATH\" =~ app/.* ]]; then echo \"📁 App Router file detected: $FILE_PATH\"; if [[ \"$FILE_PATH\" =~ page\\.(js|jsx|ts|tsx)$ ]] && ! grep -q \"export default function\" \"$FILE_PATH\" 2>/dev/null && ! grep -q \"export default async function\" \"$FILE_PATH\" 2>/dev/null; then echo \"❌ Page component must export default function\" >&2; ((ISSUES++)); fi; if [[ \"$FILE_PATH\" =~ layout\\.(js|jsx|ts|tsx)$ ]] && ! grep -q \"children\" \"$FILE_PATH\" 2>/dev/null; then echo \"❌ Layout component should accept children prop\" >&2; ((ISSUES++)); fi; if [[ \"$FILE_PATH\" =~ page\\.(js|jsx|ts|tsx)$ ]] && ! grep -q \"Metadata\" \"$FILE_PATH\" 2>/dev/null && ! grep -q \"metadata\" \"$FILE_PATH\" 2>/dev/null; then echo \"⚠️ Consider adding metadata export for SEO\"; fi; if grep -q \"use client\" \"$FILE_PATH\" 2>/dev/null; then echo \"🖥️ Client Component detected\"; if ! grep -E \"(useState|useEffect|onClick|onChange|onSubmit)\" \"$FILE_PATH\" 2>/dev/null; then echo \"⚠️ Client component without interactivity - consider Server Component\"; fi; else echo \"🚀 Server Component (default)\"; if grep -E \"(useState|useEffect|onClick|onChange|onSubmit)\" \"$FILE_PATH\" 2>/dev/null; then echo \"❌ Interactive features in Server Component - add \\\"use client\\\" directive\" >&2; ((ISSUES++)); fi; fi; fi; if [[ \"$FILE_PATH\" =~ \\.(jsx|tsx)$ ]]; then if ! grep -q \"import.*React\" \"$FILE_PATH\" 2>/dev/null && grep -q \"<\" \"$FILE_PATH\" 2>/dev/null; then echo \"⚠️ JSX without React import (Next.js 17+ handles this automatically)\"; fi; if ! grep -q \"FC\\|FunctionComponent\" \"$FILE_PATH\" 2>/dev/null && grep -q \"props\" \"$FILE_PATH\" 2>/dev/null && [[ \"$FILE_PATH\" =~ \\.tsx$ ]]; then echo \"💡 Consider using React.FC or explicit prop types for TypeScript\"; fi; fi; if [[ \"$FILE_PATH\" =~ \\.js$ ]] && [ -f \"tsconfig.json\" ]; then echo \"📝 JavaScript file in TypeScript project: $FILE_PATH\"; echo \"💡 Consider migrating to TypeScript for better type safety\"; fi; if grep -q \"next/image\" \"$FILE_PATH\" 2>/dev/null; then echo \"✅ Using next/image for optimized images\"; elif grep -q \"<img\" \"$FILE_PATH\" 2>/dev/null; then echo \"🖼️ Regular <img> tag detected\"; echo \"💡 Consider using next/image for better performance\"; fi; if grep -q \"next/link\" \"$FILE_PATH\" 2>/dev/null; then echo \"✅ Using next/link for navigation\"; elif grep -q \"<a href=\" \"$FILE_PATH\" 2>/dev/null && ! grep -q \"http\" \"$FILE_PATH\" 2>/dev/null; then echo \"🔗 Regular <a> tag for internal links detected\"; echo \"💡 Use next/link for internal navigation\"; fi; if grep -q \"getServerSideProps\\|getStaticProps\" \"$FILE_PATH\" 2>/dev/null; then echo \"⚠️ Pages Router data fetching methods detected\"; echo \"💡 Consider migrating to App Router with Server Components\"; fi; if grep -q \"className=.*{\" \"$FILE_PATH\" 2>/dev/null; then echo \"🎨 Dynamic className detected\"; if ! grep -q \"clsx\\|classnames\\|cn(\" \"$FILE_PATH\" 2>/dev/null; then echo \"💡 Consider using clsx or similar utility for className concatenation\"; fi; fi; if [ $ISSUES -eq 0 ]; then echo \"✅ Code quality check passed for $FILE_PATH\"; else echo \"❌ Found $ISSUES code quality issues in $FILE_PATH\" >&2; exit 2; fi; else echo \"❌ File $FILE_PATH not found\"; fi; else echo \"ℹ️ Code quality check skipped (not a JavaScript/TypeScript file or failed operation)\"; fi'",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}
