@@ -84,7 +84,11 @@
       "Bash(start /B modal deploy main.py)",
       "Bash(timeout 90 bash:*)",
       "Bash(timeout 240 bash -c 'while ! curl -s -X GET \"\"https://karthiknitt--ai-video-gen-direct-v4-fastapi-app.modal.run/health\"\" 2>&1 | grep -q \"\"healthy\"\"; do sleep 5; done; echo \"\"Deployment successful\"\"; curl -s -X POST \"\"https://karthiknitt--ai-video-gen-direct-v4-fastapi-app.modal.run/generate/image\"\" -H \"\"Content-Type: application/json\"\" -d \"\"{\\\\\"\"job_id\\\\\"\": \\\\\"\"final-test-001\\\\\"\", \\\\\"\"prompt\\\\\"\": \\\\\"\"A serene mountain landscape at sunrise\\\\\"\", \\\\\"\"model\\\\\"\": \\\\\"\"flux2-dev\\\\\"\", \\\\\"\"parameters\\\\\"\": {\\\\\"\"width\\\\\"\": 1024, \\\\\"\"height\\\\\"\": 1024, \\\\\"\"steps\\\\\"\": 20, \\\\\"\"cfg_scale\\\\\"\": 3.5}}\"\"')",
-      "Bash(timeout 150 bash:*)"
+      "Bash(timeout 150 bash:*)",
+      "Bash(timeout:*)",
+      "Bash(modal call:*)",
+      "Bash(modal container list:*)",
+      "Bash(modal container logs:*)"
     ]
   },
   "hooks": {
