@@ -122,7 +122,9 @@ class VideoGenerator:
             )
 
             bucket_name = os.environ["R2_BUCKET_NAME"]
-            s3_key = f"generations/{job_id}.mp4"
+            # Organize by type and date: videos/{yyyy-mm-dd}
+            date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            s3_key = f"videos/{date_folder}/{job_id}.mp4"
             s3_client.upload_file(
                 output_path,
                 bucket_name,
@@ -217,7 +219,9 @@ class VideoGenerator:
             )
 
             bucket_name = os.environ["R2_BUCKET_NAME"]
-            s3_key = f"generations/{job_id}.mp4"
+            # Organize by type and date: videos/{yyyy-mm-dd}
+            date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            s3_key = f"videos/{date_folder}/{job_id}.mp4"
             s3_client.upload_file(
                 output_path,
                 bucket_name,

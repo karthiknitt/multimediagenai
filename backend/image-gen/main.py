@@ -102,7 +102,9 @@ class ImageGenerator:
                 aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"]
             )
 
-            s3_key = f"generations/{job_id}.png"
+            # Organize by type and date: images/{yyyy-mm-dd}
+            date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            s3_key = f"images/{date_folder}/{job_id}.png"
             s3_client.upload_file(
                 output_path,
                 os.environ["R2_BUCKET_NAME"],

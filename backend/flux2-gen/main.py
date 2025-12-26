@@ -147,7 +147,9 @@ class Flux2Generator:
             )
 
             bucket_name = os.environ["R2_BUCKET_NAME"]
-            s3_key = f"generations/{job_id}.png"
+            # Organize by type and date: images/{yyyy-mm-dd}
+            date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            s3_key = f"images/{date_folder}/{job_id}.png"
             s3_client.upload_file(
                 output_path,
                 bucket_name,

@@ -117,7 +117,9 @@ class AudioGenerator:
             )
 
             bucket_name = os.environ["R2_BUCKET_NAME"]
-            s3_key = f"generations/{job_id}.wav"
+            # Organize by type and date: audio/{yyyy-mm-dd}
+            date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            s3_key = f"audio/{date_folder}/{job_id}.wav"
             s3_client.upload_file(
                 output_path,
                 bucket_name,
