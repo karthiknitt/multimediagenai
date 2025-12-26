@@ -6,15 +6,16 @@ import { db } from "@/lib/db";
 import { generations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-// Simplified schema for testing
+// Schema for image generation requests
 const generateRequestSchema = z.object({
   prompt: z.string().min(3).max(2000),
-  model: z.enum(["flux2-dev", "flux2-schnell"]).default("flux2-dev"),
-  steps: z.number().min(20).max(50).default(28),
-  cfgScale: z.number().min(1).max(20).default(3.5),
-  width: z.number().min(512).max(2048).default(1024),
-  height: z.number().min(512).max(2048).default(1024),
+  model: z.enum(["flux1-dev", "flux2-dev", "flux2-schnell"]).default("flux2-dev"),
+  steps: z.number().min(1).max(100).default(28),
+  cfgScale: z.number().min(1).max(20).default(4.0),
+  width: z.number().min(256).max(2048).default(1024),
+  height: z.number().min(256).max(2048).default(1024),
   seed: z.number().optional(),
+  negativePrompt: z.string().max(2000).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -65,12 +66,17 @@ export async function POST(request: NextRequest) {
 
     const jobId = generation.id;
 
-    // Call Modal API directly
-    const modalApiUrl = process.env.MODAL_API_URL;
+    // Determine which Modal endpoint to use based on model
+    let modalApiUrl: string | undefined;
+    if (data.model === "flux1-dev") {
+      modalApiUrl = process.env.FLUX1_API_URL;
+    } else if (data.model === "flux2-dev" || data.model === "flux2-schnell") {
+      modalApiUrl = process.env.FLUX2_API_URL;
+    }
 
     if (!modalApiUrl) {
       return NextResponse.json(
-        { error: "Configuration error", message: "Modal API not configured" },
+        { error: "Configuration error", message: `Modal API not configured for model: ${data.model}` },
         { status: 500 }
       );
     }
@@ -82,7 +88,8 @@ export async function POST(request: NextRequest) {
       .where(eq(generations.id, jobId));
 
     // Call Modal API (this spawns async task)
-    const modalResponse = await fetch(`${modalApiUrl}/generate/image`, {
+    // Note: Modal API expects snake_case parameters
+    const modalResponse = await fetch(modalApiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -44,7 +44,7 @@ export const generations = pgTable("generations", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["image", "video", "audio"] }).notNull(),
+  type: text("type", { enum: ["image", "video", "audio", "speech"] }).notNull(),
   model: text("model").notNull(),
   prompt: text("prompt").notNull(),
   parameters: jsonb("parameters"),
@@ -71,5 +71,17 @@ export const workflowPresets = pgTable("workflow_presets", {
   type: text("type", { enum: ["image", "video", "audio"] }).notNull(),
   workflowJson: jsonb("workflow_json").notNull(),
   isPublic: boolean("is_public").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const voiceLibrary = pgTable("voice_library", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }), // null for system voices
+  name: text("name").notNull(),
+  description: text("description"),
+  referenceAudioUrl: text("reference_audio_url").notNull(),
+  language: text("language").notNull().default("en"),
+  isPublic: boolean("is_public").notNull().default(false),
+  isSystem: boolean("is_system").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

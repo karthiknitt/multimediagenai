@@ -112,12 +112,20 @@ export function ModelSelector({
 // Default models for image generation
 export const imageModels: ModelOption[] = [
   {
+    id: "flux1-dev",
+    name: "FLUX.1 Dev",
+    description: "Dual text encoders for enhanced prompt understanding. Excellent balance of quality and speed.",
+    speed: "medium",
+    quality: "high",
+    estimatedTime: "15-25s",
+  },
+  {
     id: "flux2-dev",
     name: "FLUX.2 Dev",
-    description: "High-quality generation with excellent prompt following. Best for detailed, artistic images.",
+    description: "Latest model with Mistral3 encoder. Superior quality and prompt following for detailed, artistic images.",
     speed: "medium",
     quality: "ultra",
-    estimatedTime: "20-30s",
+    estimatedTime: "25-35s",
   },
   {
     id: "flux2-schnell",
@@ -125,7 +133,7 @@ export const imageModels: ModelOption[] = [
     description: "Fast generation with good quality. Great for quick iterations and testing ideas.",
     speed: "fast",
     quality: "high",
-    estimatedTime: "5-10s",
+    estimatedTime: "8-12s",
   },
 ];
 

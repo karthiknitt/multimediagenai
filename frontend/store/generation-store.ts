@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 // Types for generation parameters
 export interface ImageParams {
   prompt: string;
-  model: "flux2-dev" | "flux2-schnell";
+  model: "flux1-dev" | "flux2-dev" | "flux2-schnell";
   steps: number;
   cfgScale: number;
   width: number;

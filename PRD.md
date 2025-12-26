@@ -35,13 +35,16 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 | **UI Framework** | shadcn/ui | Latest v2.x | Modern, customizable, accessible components |
 | **Styling** | Tailwind CSS | v4 | Utility-first, highly customizable |
 | **Authentication** | Better Auth | Latest | Type-safe, self-hosted, free, Neon integration |
-| **Workflows** | Inngest | Latest | Durable execution, retries, event-driven |
+| **Workflows** | ~~Inngest~~ Direct API | ~~Latest~~ N/A | ~~Deprecated~~ Direct Modal → DB updates via SSE |
 | **Database** | Neon PostgreSQL | Latest | Serverless, autoscaling, branching support |
 | **ORM** | Drizzle | Latest | Type-safe, serverless-optimized |
 | **Storage** | Cloudflare R2 | - | 10x cheaper egress than S3, CDN built-in |
-| **Compute** | Modal | - | Serverless GPU, pay-per-second billing |
-| **GPU** | A100 80GB | - | Cost-optimal ($2.50/hr), fits VRAM requirements |
-| **AI Backend** | ComfyUI | Latest | Workflow ecosystem, easy model swapping |
+| **Compute** | Modal (Microservices) | - | 5 separate apps, serverless GPU, pay-per-second |
+| **GPU (Image)** | A100 80GB | - | FLUX.1/FLUX.2 generation ($2.50/hr) |
+| **GPU (Video)** | A100 80GB | - | Mochi/CogVideoX generation ($2.50/hr) |
+| **GPU (Audio)** | L40S | - | MusicGen generation ($1.20/hr, 48% savings) |
+| **GPU (TTS)** | A10G | - | F5-TTS speech synthesis ($1.10/hr) |
+| **AI Backend** | Diffusers/Transformers | Latest | Direct Python APIs (no ComfyUI) |
 | **State** | Zustand | Latest | Lightweight state management |
 | **Data Fetching** | React Query | v5 | Caching, SSE support |
 | **Validation** | Zod | Latest | Schema validation |
@@ -94,6 +97,19 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 - **Features:** Text-to-music with controllable conditioning
 - **Why:** High-quality music generation, controllable output
 
+### Text-to-Speech (TTS) Generation
+
+**Primary Model: F5-TTS**
+- **Parameters:** Diffusion-based TTS model
+- **VRAM:** 6-8GB
+- **Output:** Natural speech, 30s audio in ~4-6 seconds
+- **Repository:** `SWivid/F5-TTS`
+- **Features:** Zero-shot voice cloning (3-10s reference), multi-language support
+- **Languages:** English (primary), Chinese, French, German, Japanese, Korean
+- **License:** MIT (fully commercial-friendly)
+- **GPU:** A10G ($1.10/hr)
+- **Why:** State-of-the-art quality (Jan 2025), fastest inference, excellent voice cloning, low VRAM
+
 ### Phase 2: Video Editing Models
 
 **Wan 2.1-VACE** (Alibaba, May 2025)
@@ -119,47 +135,52 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│           Next.js 16 App (Localhost)                │
+│           Next.js 16 App (Vercel)                   │
 │  ┌────────────┐  ┌──────────────┐  ┌─────────────┐ │
 │  │  Landing   │  │  Generation  │  │   Gallery   │ │
-│  │    Page    │  │      UI      │  │  + Editor   │ │
+│  │    Page    │  │      UI      │  │   (TODO)    │ │
 │  └────────────┘  └──────────────┘  └─────────────┘ │
 │                                                      │
 │  ┌────────────────────────────────────────────────┐ │
 │  │      Better Auth (user management)             │ │
 │  └────────────────────────────────────────────────┘ │
 └───────────────────┬──────────────────────────────────┘
-                    │ API Routes
+                    │ Direct HTTP API Calls (no Inngest)
                     ▼
         ┌────────────────────────┐
-        │  Inngest Event Bus     │  ◀─ Event-driven orchestration
-        │  - Job queuing         │
-        │  - Retry logic         │
-        │  - Workflow state      │
+        │  5 Modal Microservices │
+        │  (Separate Deployments)│
         └───┬────────────────┬───┘
             │                │
             ▼                ▼
-┌────────────────────┐  ┌─────────────────────┐
-│  Neon PostgreSQL   │  │  Modal Functions    │
-│  - User profiles   │  │  (A100 80GB GPU)    │
-│  - Generations log │  │                     │
-│  - Workflow presets│  │  - ComfyUI Server   │
-│  - Project data    │  │  - Model Loading    │
-└────────────────────┘  │  - FLUX.2 FP8       │
-                        │  - Mochi/CogVideoX  │
-                        │  - MusicGen         │
-                        └──────────┬──────────┘
-                                   │
-                        ┌──────────▼──────────┐
-                        │   Modal Volumes     │
-                        │   - Models (120GB)  │
-                        │   - ComfyUI nodes   │
-                        └──────────┬──────────┘
+┌────────────────────┐  ┌─────────────────────────────────┐
+│  Neon PostgreSQL   │  │  Modal Apps (Direct psycopg2)   │
+│  - User profiles   │  │                                 │
+│  - Generations log │  │  1. image-gen (FLUX.1)          │
+│  - Progress track  │  │     GPU: A100-80GB ($2.50/hr)   │
+│  - Project data    │  │     Volume: 40GB models         │
+└────────────────────┘  │                                 │
+                        │  2. flux2-gen (FLUX.2)          │
+                        │     GPU: A100-80GB ($2.50/hr)   │
+                        │     Volume: 40GB models         │
+                        │                                 │
+                        │  3. video-gen (Mochi/CogVideoX) │
+                        │     GPU: A100-80GB ($2.50/hr)   │
+                        │     Volume: 80GB models         │
+                        │                                 │
+                        │  4. audio-gen (MusicGen)        │
+                        │     GPU: L40S ($1.20/hr)        │
+                        │     Volume: 16GB models         │
+                        │                                 │
+                        │  5. tts-gen (F5-TTS)            │
+                        │     GPU: A10G ($1.10/hr)        │
+                        │     Volume: 8GB models          │
+                        └──────────┬──────────────────────┘
                                    │
                         ┌──────────▼──────────┐
                         │  Cloudflare R2      │
                         │  - User outputs     │
-                        │  - Project files    │
+                        │  - Voice samples    │
                         │  - R2 Public CDN    │
                         └─────────────────────┘
 ```
@@ -176,57 +197,99 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 - Image/video/audio preview and playback
 
 **Pages:**
-- `/` - Landing page (hero, features, pricing)
-- `/login`, `/signup` - Authentication
-- `/dashboard` - User dashboard with stats
-- `/generate/image` - Image generation interface
-- `/generate/video` - Video generation (text2video + img2video)
-- `/generate/audio` - Audio/music generation
-- `/gallery` - Media library with search/filter
-- `/editor` - Video timeline editor (Phase 2)
-- `/projects` - Project management (Phase 2)
+- `/` - Landing page (hero, features, pricing) ✅
+- `/login`, `/signup` - Authentication ✅
+- `/dashboard` - User dashboard with stats ✅
+- `/generate/image` - Image generation interface ✅
+- `/generate/video` - Video generation (text2video + img2video) ⏳
+- `/generate/audio` - Audio/music generation ⏳
+- `/generate/speech` - TTS generation (NEW) ⏳
+- `/gallery` - Media library with search/filter ❌
+- `/editor` - Video timeline editor (Phase 2) ❌
+- `/projects` - Project management (Phase 2) ❌
 
-#### 2. Inngest Workflow Layer
-**Purpose:** Durable, event-driven job orchestration
+#### 2. ~~Inngest Workflow Layer~~ Direct API Pattern (DEPRECATED)
+**Previous Architecture:** Event-driven orchestration via Inngest
+**New Architecture:** Direct Modal API calls with database polling
 
-**Event Types:**
-- `generation/requested` - New generation job submitted
-- `generation/progress` - Progress update (0-100%)
-- `generation/completed` - Job finished successfully
-- `generation/failed` - Job failed with error
-
-**Functions:**
-- `generateImage` - FLUX.2 image generation handler
-- `generateVideo` - Mochi/CogVideoX video handler
-- `generateAudio` - MusicGen audio handler
-- `processVideoEdit` - Phase 2 video editing handler
-
-**Benefits:**
-- Automatic retries with exponential backoff
-- Survives failures (durable execution)
-- Visual workflow debugging
-- Step-based execution
-
-#### 3. Modal Backend
-**Purpose:** Serverless GPU compute for AI inference
-
-**Configuration:**
-```python
-@app.function(
-    gpu="A100-80GB",
-    timeout=900,  # 15 min
-    container_idle_timeout=300,  # 5 min warm
-    volumes={"/models": volume},
-    memory=32768,  # 32GB RAM
-)
+**Flow:**
+```
+Frontend → Next.js API Route → Modal FastAPI Endpoint
+  → GPU Generation → Direct DB Update (psycopg2)
+  → Frontend polls DB via SSE (/api/generation/[id]/stream)
 ```
 
-**Features:**
-- Headless ComfyUI server
-- FP8 model quantization (FLUX.2: 37GB → 12GB)
-- Lazy model loading (LRU eviction)
-- Progress tracking via Inngest events
-- R2 upload for outputs
+**Why Changed:**
+- Reduced complexity (fewer moving parts)
+- Lower costs (no Inngest subscription)
+- Simpler debugging (direct HTTP calls)
+- Modal provides retry logic natively
+
+**Note:** Inngest code still exists in codebase for backward compatibility but is being phased out.
+
+#### 3. Modal Microservices Backend
+**Purpose:** Serverless GPU compute for AI inference
+
+**Architecture:** 5 separate Modal applications (not monolithic)
+
+**App 1: image-gen (FLUX.1-dev)**
+```python
+@app.cls(gpu="A100-80GB", timeout=600, container_idle_timeout=180,
+         volumes={"/models": flux1_volume}, memory=16384)
+class ImageGenerator:
+    @modal.fastapi_endpoint(method="POST")
+    def generate(self, request): ...
+```
+
+**App 2: flux2-gen (FLUX.2-dev)**
+```python
+@app.cls(gpu="A100-80GB", timeout=600, container_idle_timeout=180,
+         volumes={"/models": flux2_volume}, memory=16384)
+class Flux2Generator:
+    # Uses remote text encoder to save 10GB VRAM
+    @modal.fastapi_endpoint(method="POST")
+    def generate(self, request): ...
+```
+
+**App 3: video-gen (Mochi + CogVideoX)**
+```python
+@app.cls(gpu="A100-80GB", timeout=900, container_idle_timeout=300,
+         volumes={"/models": video_volume}, memory=32768)
+class VideoGenerator:
+    # Lazy loads only Mochi OR CogVideoX per request
+    @modal.fastapi_endpoint(method="POST")
+    def generate_text2video(self, request): ...
+
+    @modal.fastapi_endpoint(method="POST")
+    def generate_img2video(self, request): ...
+```
+
+**App 4: audio-gen (MusicGen)**
+```python
+@app.cls(gpu="L40S", timeout=300, container_idle_timeout=180,
+         volumes={"/models": audio_volume}, memory=16384)
+class AudioGenerator:
+    # 48% cheaper GPU (L40S vs A100)
+    @modal.fastapi_endpoint(method="POST")
+    def generate(self, request): ...
+```
+
+**App 5: tts-gen (F5-TTS)** (NEW)
+```python
+@app.cls(gpu="A10G", timeout=300, container_idle_timeout=180,
+         volumes={"/models": tts_volume}, memory=16384)
+class TTSGenerator:
+    @modal.fastapi_endpoint(method="POST")
+    def generate(self, request): ...
+```
+
+**Common Features:**
+- Direct Diffusers/Transformers pipelines (no ComfyUI)
+- FP8/BF16 quantization for VRAM optimization
+- Lazy model loading on first request
+- Progress tracking via direct DB updates (psycopg2)
+- R2 upload for outputs (boto3)
+- FastAPI endpoints for HTTP access
 
 #### 4. Neon Database
 **Purpose:** Serverless PostgreSQL for structured data
@@ -246,89 +309,101 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 #### 5. Cloudflare R2 Storage
 **Purpose:** Cost-effective object storage with CDN
 
-**Buckets:**
-- `models` - AI model weights (120GB)
-- `outputs` - User-generated content (growing)
-- `projects` - Video editing project files (Phase 2)
+**Storage Strategy:**
+- **Models:** Stored in Modal Volumes (per app, ~184GB total)
+- **User Outputs:** Stored in R2 bucket `img-vid-aud`
+
+**R2 Bucket Structure:**
+```
+img-vid-aud/
+├── images/{yyyy-mm-dd}/{job_id}.png
+├── videos/{yyyy-mm-dd}/{job_id}.mp4
+├── audio/{yyyy-mm-dd}/{job_id}.wav
+└── speech/{yyyy-mm-dd}/{job_id}.wav
+    voices/{user_id}/{voice_id}.wav  (reference samples)
+```
 
 **Features:**
-- Zero egress costs ($0/GB)
-- S3-compatible API
-- Public CDN URLs
+- Zero egress costs ($0/GB vs S3's $0.09/GB)
+- S3-compatible API (boto3)
+- Public CDN URLs (1-hour pre-signed for security)
 - $0.015/GB/month storage (10x cheaper than S3)
+- Date-based organization for easy cleanup
+
+**Cost:**
+- Modal Volumes: ~$18.40/month (184GB × $0.10/GB)
+- R2 Storage: ~$0.75/month (50GB × $0.015/GB)
+- **Total Storage: ~$19/month**
 
 ---
 
 ## GPU & VRAM Requirements
 
-### Selected GPU: A100 80GB
+### GPU Strategy: Dedicated GPUs per Model (Microservices)
+
+**Architecture Change:** Instead of shared A100 with model swapping, each model type has a dedicated GPU instance.
 
 **Rationale:**
-1. **Cost-optimal:** $2.50/hr on Modal (vs $3.95/hr for H100)
-2. **VRAM sufficient:** 80GB fits all models with FP8 quantization
-3. **Serverless billing:** Pay per second, $0 when idle
-4. **Performance:** 2-3x faster than A100 40GB for video workloads
+1. **Simpler:** No complex LRU eviction logic needed
+2. **Reliable:** Model loading failures don't affect other services
+3. **Optimized:** Can choose cost-optimal GPU per workload
+4. **Scalable:** Independent scaling per generation type
 
-### VRAM Breakdown (Optimized)
+### VRAM Breakdown by Service
 
-| Model | VRAM (Optimized) | VRAM (Full) | Optimization |
-|-------|-----------------|-------------|--------------|
-| FLUX.2 dev | 12GB | 37GB | FP8 quantization |
-| Mochi 1 | 8-18GB | 60GB | ComfyUI optimizations |
-| CogVideoX-5B | 12GB | 68GB | VAE + transformer optimizations |
-| MusicGen Large | 16GB | 16GB | N/A |
-| Overhead/Buffers | 10-15GB | - | - |
-| **Total Peak** | **48-58GB** | **181GB** | **Fits A100 80GB ✓** |
+| Service | Model | GPU | VRAM Used | Cost/hr | Optimization |
+|---------|-------|-----|-----------|---------|--------------|
+| image-gen | FLUX.1-dev | A100-80GB | ~12GB | $2.50 | BF16 precision |
+| flux2-gen | FLUX.2-dev | A100-80GB | ~18GB | $2.50 | Remote text encoder |
+| video-gen (Mochi) | Mochi 1 | A100-80GB | 18GB | $2.50 | GGUF Q8 quantization |
+| video-gen (CogVideoX) | CogVideoX-5B | A100-80GB | 12GB | $2.50 | BF16 precision |
+| audio-gen | MusicGen Large | L40S | 16GB | $1.20 | **48% savings!** |
+| tts-gen | F5-TTS | A10G | 6-8GB | $1.10 | Diffusion TTS |
 
-### Model Swapping Strategy
-- Load models on-demand (lazy loading)
-- LRU eviction when VRAM is full
-- Image-only jobs: FLUX.2 only (~12GB)
-- Video jobs: FLUX.2 + Mochi OR CogVideoX (~24-30GB)
-- Audio jobs: MusicGen only (~16GB)
+**Note:** Video-gen lazy loads either Mochi OR CogVideoX per request (not both simultaneously).
+
+### Model Loading Strategy (Per App)
+- **Container startup:** <1s (no model loading)
+- **First request:** Lazy load model on-demand (+10-50s)
+- **Subsequent requests:** Use cached model (<1s overhead)
+- **No LRU eviction:** Each app has dedicated VRAM
+
+### Total VRAM Across All Services
+- Peak concurrent VRAM: 18GB + 18GB + 16GB + 8GB = **60GB** (split across 5 GPUs)
+- Previous architecture: 48-58GB (shared A100)
+- **Trade-off:** Higher GPU costs but simpler and more reliable
 
 ---
 
-## Storage Strategy
+## Storage Strategy (Updated)
 
-### Current Decision: Modal Volumes + R2 Hybrid
+### Current Implementation: Modal Volumes (per app) + R2
 
-**Models (120GB):** Stored in **Modal Volumes**
-**User Outputs:** Stored in **Cloudflare R2**
+**Models (184GB total):** Stored in **Modal Volumes** (separate per app)
+- image-gen: 40GB
+- flux2-gen: 40GB
+- video-gen: 80GB
+- audio-gen: 16GB
+- tts-gen: 8GB
+- **Cost:** $18.40/month (184GB × $0.10/GB)
 
-### Modal Volumes for Models
-**Cost:** $12/month (120GB × $0.10/GB)
+**User Outputs:** Stored in **Cloudflare R2** (`img-vid-aud` bucket)
+- **Cost:** ~$0.75/month (50GB × $0.015/GB)
 
-**Pros:**
-- ✅ Zero latency (instant model loading)
-- ✅ Simple architecture (Modal-native)
-- ✅ Persistent across containers
-- ✅ No download logic needed
+**Total Storage Cost:** ~$19/month
 
-**Cons:**
-- ❌ Higher cost vs R2 ($12/mo vs $1.80/mo)
-- ❌ No public URLs
-- ❌ Regional limitation
+### Why This Approach
+- ✅ Zero latency (instant model loading from volumes)
+- ✅ Simple architecture (no download orchestration)
+- ✅ Persistent across container restarts
+- ✅ Each service has independent model storage
+- ✅ R2 provides zero egress costs for user downloads
 
-### Cloudflare R2 for User Outputs
-**Cost:** $0.75/month (50GB × $0.015/GB)
-
-**Pros:**
-- ✅ Cheap storage ($0.015/GB/month)
-- ✅ Zero egress costs
-- ✅ Public CDN URLs
-- ✅ Cross-region redundancy
-
-### Alternative: R2-Only (Documented for Future Migration)
-
-**Cost:** $2.55/month total (83% savings)
-**Trade-off:** +10-30s cold start latency
-**Migration effort:** 2-4 hours
-
-**When to migrate:**
-- Monthly costs exceed $500
-- Request frequency drops <50/day
-- Need multi-region deployment
+### Future Optimization Option
+If storage costs exceed $50/month, consider migrating models to R2:
+- **Savings:** 83% reduction ($18.40 → $2.76/month for models)
+- **Trade-off:** +10-30s cold start latency per service
+- **Effort:** 2-4 hours implementation
 
 ---
 
@@ -339,58 +414,102 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 ```
 1. User enters prompt + parameters in UI
 2. Next.js validates input (Zod schema)
-3. Next.js emits Inngest event: "generation/requested"
-4. Inngest function receives event
-5. Inngest calls Modal API endpoint
-6. Modal spins up A100 GPU container (10-30s cold, instant warm)
-7. ComfyUI loads FLUX.2 model from Modal Volume
-8. Generation starts, emits progress events every 5s
-9. Inngest forwards progress to Next.js via SSE
-10. Frontend updates progress bar in real-time
-11. Output saved to R2, public URL returned
-12. Inngest emits "generation/completed" event
-13. Inngest saves metadata to Neon DB
-14. Frontend displays result with download link
+3. Next.js API route calls Modal API directly (/generate)
+4. Modal spins up A100 GPU container (10-30s cold, instant warm)
+5. Diffusers pipeline loads FLUX.2 model from Modal Volume
+6. Generation starts, updates DB directly every 5s (psycopg2)
+7. Frontend polls DB via SSE (/api/generation/[id]/stream)
+8. Frontend updates progress bar in real-time
+9. Output saved to R2, public URL returned
+10. Backend updates DB with completion status
+11. Frontend displays result with download link
 ```
 
 **Performance Targets:**
 - Cold start: <45s
 - Warm start: <20s
 - Cost per image: $0.01-0.02
+- GPU: A100-80GB @ $2.50/hr
 
 ### Video Generation Flow (Text-to-Video)
 
 ```
 1. User enters prompt + parameters (duration, FPS, motion strength)
 2. UI validates and submits to Next.js API
-3. Inngest triggers Modal with Mochi 1 workflow
-4. Modal loads Mochi 1 model (8-18GB VRAM)
+3. API calls Modal video-gen endpoint (/generate_text2video)
+4. Modal loads Mochi 1 model (18GB VRAM, GGUF Q8)
 5. Generation runs for 2-3 minutes
-6. Progress updates every 10s (0%, 25%, 50%, 75%, 100%)
-7. Output video (5.4s @ 30fps, 480p) uploaded to R2
-8. Metadata saved to DB with prompt, parameters, timestamp
-9. Frontend displays video player with controls
+6. Progress updates every 10s via direct DB updates (0%, 25%, 50%, 75%, 100%)
+7. Frontend polls progress via SSE
+8. Output video (5.4s @ 30fps, 480p) uploaded to R2
+9. Backend saves metadata to DB (prompt, parameters, timestamp)
+10. Frontend displays video player with controls
 ```
 
 **Performance Targets:**
 - Generation time: <3 min for 5s video
 - Cost per video: $0.08-0.12
+- GPU: A100-80GB @ $2.50/hr
 
 ### Video Generation Flow (Image-to-Video)
 
 ```
 1. User selects image from gallery OR uploads new image
 2. User adjusts parameters (motion strength, FPS, style)
-3. Image + parameters sent to Inngest
-4. Modal loads FLUX.2 (if needed) + CogVideoX
+3. Next.js API calls Modal video-gen endpoint (/generate_img2video)
+4. Modal loads CogVideoX-5B model (12GB VRAM)
 5. CogVideoX processes image → video (1.5-2.5 min)
-6. Output saved to R2, thumbnail generated
-7. Frontend shows before/after comparison
+6. Progress updates every 10s via direct DB updates
+7. Frontend polls progress via SSE
+8. Output saved to R2, thumbnail generated
+9. Frontend shows before/after comparison
 ```
 
 **Performance Targets:**
 - Generation time: <2 min for 5s video
 - Cost per video: $0.06-0.10
+- GPU: A100-80GB @ $2.50/hr
+
+### Audio Generation Flow
+
+```
+1. User enters prompt describing desired music/sound (genre, mood, instruments)
+2. User adjusts parameters (duration, temperature, top_k, top_p)
+3. Next.js API calls Modal audio-gen endpoint (/generate)
+4. Modal loads MusicGen Large model (16GB VRAM)
+5. Generation runs for 10-15 seconds (30s audio output)
+6. Progress updates every 5s via direct DB updates
+7. Frontend polls progress via SSE
+8. Output audio (32kHz WAV) uploaded to R2
+9. Backend saves metadata to DB (prompt, parameters, timestamp)
+10. Frontend displays audio player with waveform
+```
+
+**Performance Targets:**
+- Generation time: <15s for 30s audio
+- Cost per audio: <$0.01
+- GPU: L40S @ $1.20/hr (48% savings vs A100)
+
+### TTS Generation Flow
+
+```
+1. User enters text + optional voice reference audio
+2. User selects language, speed, emotion/style settings
+3. Next.js API calls Modal tts-gen endpoint (/generate)
+4. Modal loads F5-TTS model (6-8GB VRAM)
+5. Generation runs for 4-6 seconds (30s speech output)
+6. Progress updates every 2s via direct DB updates (0%, 50%, 100%)
+7. Frontend polls progress via SSE
+8. Output speech audio uploaded to R2
+9. Backend saves metadata to DB (text, voice settings, timestamp)
+10. Frontend displays audio player with waveform
+```
+
+**Performance Targets:**
+- Generation time: <6s for 30s speech
+- Cost per speech: <$0.002
+- GPU: A10G @ $1.10/hr
+- Voice cloning: 3-10s reference audio required
 
 ### Phase 2: Video Editing Flow
 
@@ -443,10 +562,10 @@ sessions {
 generations {
   id: uuid (PK)
   userId: uuid (FK → users.id)
-  type: text ('image' | 'video' | 'audio')
-  model: text ('flux2-dev' | 'mochi-1' | 'cogvideox' | 'musicgen')
+  type: text ('image' | 'video' | 'audio' | 'speech')
+  model: text ('flux1-dev' | 'flux2-dev' | 'mochi-1' | 'cogvideox' | 'musicgen' | 'f5-tts')
   prompt: text
-  parameters: jsonb ({ steps, cfg, seed, resolution, ... })
+  parameters: jsonb ({ steps, cfg, seed, resolution, voiceReferenceUrl, language, speed, ... })
   outputUrl: text (R2 public URL)
   status: text ('pending' | 'processing' | 'completed' | 'failed')
   error: text (nullable)
@@ -474,6 +593,33 @@ workflowPresets {
   createdAt: timestamp
 }
 ```
+
+### Voice Library Table
+```typescript
+voiceLibrary {
+  id: uuid (PK)
+  userId: uuid (FK → users.id, nullable for system voices)
+  name: text
+  description: text
+  referenceAudioUrl: text (R2 URL to voice sample)
+  language: text ('en' | 'zh' | 'fr' | 'de' | 'ja' | 'ko' | ...)
+  isPublic: boolean (default: false)
+  isSystem: boolean (default: false, true for pre-loaded voices)
+  createdAt: timestamp
+}
+```
+
+**Indexes:**
+- `userId` (for user's voice library)
+- `isSystem` (for filtering system voices)
+- `isPublic` (for public voice discovery)
+
+**Pre-loaded System Voices (5-10):**
+- Professional Male (English)
+- Professional Female (English)
+- Casual Male (English)
+- Casual Female (English)
+- Narrator (English)
 
 ### Projects Table (Phase 2)
 ```typescript
@@ -521,9 +667,9 @@ projects {
    - Demo video/animation showcasing capabilities
 
 2. Features
-   - 3-column grid
+   - 4-column grid
    - Icons + titles + descriptions
-   - "Image Generation", "Video Creation", "Audio Production"
+   - "Image Generation", "Video Creation", "Audio Production", "Speech Synthesis"
 
 3. Pricing
    - Free tier: 10 generations/month
@@ -553,6 +699,31 @@ projects {
 - "Save Preset" button
 - "Download" button (after generation)
 - "Edit in Video" button (img2vid workflow)
+
+#### Generation Interface (TTS/Speech)
+**Layout:**
+- Left sidebar: Voice settings, language selector
+- Center: Text input area, waveform preview
+- Right sidebar: Voice library, recent generations
+
+**Parameters:**
+- Text (textarea, max 500 chars for 30s speech)
+- Voice (select from library or upload reference sample)
+- Language (dropdown: English, Chinese, French, German, etc.)
+- Speed (0.8x - 1.5x, slider)
+- Emotion/Style (optional text description)
+
+**Voice Library:**
+- Pre-loaded system voices (5-10 professional voices)
+- User-uploaded voice samples (for cloning)
+- Voice preview button (play 5s sample)
+- Upload voice sample button (3-10s audio file)
+
+**Actions:**
+- "Generate Speech" button (primary CTA)
+- "Upload Voice Sample" button (for cloning)
+- "Download" button (after generation)
+- "Add to Video" button (integration with video gen)
 
 #### Progress Indicator
 **Design:**
@@ -658,48 +829,56 @@ projects {
 
 ## Cost Analysis & Projections
 
-### Per-Generation Costs (A100 80GB @ $2.50/hr)
+### Per-Generation Costs
 
-| Generation Type | Time | Cost |
-|----------------|------|------|
-| Image (FLUX.2 FP8) | 15-30s | $0.01-0.02 |
-| Video (Mochi text2vid) | 2-3 min | $0.08-0.12 |
-| Video (CogVideoX img2vid) | 1.5-2.5 min | $0.06-0.10 |
-| Audio (MusicGen 30s) | 10-15s | $0.007-0.01 |
+| Generation Type | GPU | Time | Cost |
+|----------------|-----|------|------|
+| Image (FLUX.1/FLUX.2) | A100-80GB @ $2.50/hr | 15-30s | $0.01-0.02 |
+| Video (Mochi text2vid) | A100-80GB @ $2.50/hr | 2-3 min | $0.08-0.12 |
+| Video (CogVideoX img2vid) | A100-80GB @ $2.50/hr | 1.5-2.5 min | $0.06-0.10 |
+| Audio (MusicGen 30s) | L40S @ $1.20/hr | 10-15s | $0.003-0.005 |
+| Speech (F5-TTS 30s) | A10G @ $1.10/hr | 4-6s | $0.0012-0.0018 |
 
 ### Monthly Cost Projections
 
 #### Development Phase (Low Usage)
 - GPU: ~$50 (testing, debugging)
-- R2 Storage: ~$2 (models + test outputs)
+- Modal Volumes: ~$18 (184GB models, 5 apps)
+- R2 Storage: ~$1 (test outputs)
 - Neon DB: Free tier
-- Inngest: Free tier (10k events)
 - Vercel: Free tier
-- **Total: ~$50/month**
+- **Total: ~$69/month**
 
-#### Production Phase (100 images + 50 videos/day)
-- GPU: ~$200
+#### Production Phase (100 images + 50 videos + 50 speech/day)
+- GPU: ~$208
   - Images: 100 × 30 × $0.015 = $45
   - Videos: 50 × 30 × $0.10 = $150
-  - Audio: 20 × 30 × $0.008 = $5
+  - Audio: 20 × 30 × $0.004 = $2.40
+  - Speech: 50 × 30 × $0.0015 = $2.25
+  - Burst overhead: ~$8
+- Modal Volumes: ~$18 (184GB models)
 - R2 Storage: ~$3
-  - Models (120GB): $1.80
-  - Outputs (50GB): $0.75
+  - Outputs (100GB): $1.50
+  - Voice samples (10GB): $0.15
 - Neon DB: $19 (Pro tier)
 - Inngest: $50 (Scale tier, 50k events)
 - Vercel: $20 (Pro tier)
 - **Total: ~$290/month**
 
-#### Scaling Phase (1000 images + 500 videos/day)
-- GPU: ~$2000
+#### Scaling Phase (1000 images + 500 videos + 500 speech/day)
+- GPU: ~$2,030
   - Images: 1000 × 30 × $0.015 = $450
   - Videos: 500 × 30 × $0.10 = $1,500
-  - Audio: 200 × 30 × $0.008 = $50
-- R2 Storage: ~$20 (200GB total)
+  - Audio: 200 × 30 × $0.004 = $24
+  - Speech: 500 × 30 × $0.0015 = $22.50
+  - Burst overhead: ~$33.50
+- Modal Volumes: ~$18 (184GB models)
+- R2 Storage: ~$25
+  - Outputs (500GB): $7.50
+  - Voice samples (50GB): $0.75
 - Neon DB: $69 (Scale tier)
-- Inngest: $200 (Enterprise tier)
 - Vercel: $20 (Pro tier)
-- **Total: ~$2,300/month**
+- **Total: ~$2,162/month**
 
 ### Revenue Model (Future)
 
@@ -711,7 +890,8 @@ projects {
 
 #### Pro Tier - $29/month
 - Unlimited generations
-- All models (FLUX.2, Mochi, CogVideoX, MusicGen)
+- All models (FLUX.1, FLUX.2, Mochi, CogVideoX, MusicGen, F5-TTS)
+- Voice cloning (upload custom voice samples)
 - Private gallery
 - Custom workflow upload
 - Priority queue
@@ -1001,12 +1181,59 @@ projects {
 - Complementary workflows (text2vid + img2vid)
 - Both optimized for <20GB VRAM
 
-### Why Inngest over Simple Queues?
+### ~~Why Inngest over Simple Queues?~~ (DEPRECATED)
+**Previous Rationale:**
 - Durable workflows (survives failures)
 - Built-in retry logic with exponential backoff
 - Event-driven architecture (loosely coupled)
 - Visual workflow debugging
-- Perfect for AI pipelines (long-running, retries critical)
+
+**Why Deprecated:**
+- Added complexity without sufficient benefit for this use case
+- Modal provides native retry logic
+- Direct API calls simpler to debug and maintain
+- Cost savings (no Inngest subscription needed)
+- **Replaced with:** Direct Modal API calls + database polling via SSE
+
+### Why Microservices Pattern over Monolithic ComfyUI App?
+**Actual Implementation:** 5 separate Modal apps (image-gen, flux2-gen, video-gen, audio-gen, tts-gen)
+
+**Why This Approach:**
+- **Simpler deployment:** Independent releases per model/service
+- **Easier debugging:** Isolated failures, clear error boundaries
+- **Flexible GPU allocation:** Each model gets optimal GPU (A100 for video, L40S for audio, A10G for TTS)
+- **No complex orchestration:** No LRU model swapping logic needed
+- **Direct API control:** Diffusers/Transformers APIs instead of ComfyUI JSON workflows
+- **Inspired by production patterns:** Real-world microservices architecture (hey-gen-clone repo)
+- **Trade-off accepted:** Higher total GPU cost vs. shared GPU, but worth it for operational simplicity
+
+**What Changed from PRD:**
+- PRD planned: Single `modal_app/` with centralized ComfyUI workflows + LRU model swapping
+- Actually built: 4 separate Modal apps with direct Diffusers/Transformers pipelines
+- Added 5th app for TTS (F5-TTS on A10G)
+
+### Why F5-TTS over Coqui XTTS/Bark/Tortoise?
+**Comparison:**
+
+| Model | Quality | Speed (30s) | VRAM | License | Voice Cloning |
+|-------|---------|-------------|------|---------|---------------|
+| F5-TTS | State-of-art | 4-6s | 6-8GB | MIT | 3-10s reference |
+| Coqui XTTS v2 | Good | 10-15s | 10-16GB | CPML (restrictive) | 6s reference |
+| Bark | Good | 15-20s | 10-16GB | MIT | No (voice presets) |
+| Tortoise TTS | Excellent | 60-120s | 8-12GB | Apache 2.0 | Yes (slow) |
+
+**Why F5-TTS:**
+- **State-of-the-art quality** (Jan 2025, latest diffusion-based TTS)
+- **Fastest inference:** 30s audio in 4-6 seconds (3x faster than XTTS)
+- **Best voice cloning:** Minimal reference audio (3-10s) with excellent results
+- **MIT License:** Fully commercial-friendly (vs CPML restrictions in XTTS)
+- **Low VRAM:** 6-8GB fits comfortably on A10G ($1.10/hr vs $2.50/hr for A100)
+- **Active development:** Latest release Dec 2024, strong community
+- **Multi-language:** English, Chinese, French, German, Japanese, Korean support
+
+**Cost Comparison:**
+- F5-TTS on A10G: $0.0012-0.0018 per 30s
+- XTTS on A100: $0.003-0.005 per 30s (2.5x more expensive)
 
 ### Why Better Auth over Clerk/Auth.js?
 - Modern, type-safe

@@ -1,0 +1,12 @@
+modal>=0.63.0
+torch>=2.0.0
+torchaudio
+transformers
+accelerate
+psycopg2-binary
+boto3
+python-dotenv
+numpy
+scipy
+soundfile
+cached-path

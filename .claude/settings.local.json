@@ -90,7 +90,12 @@
       "Bash(modal container list:*)",
       "Bash(modal container logs:*)",
       "Bash(chcp 65001)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pnpm drizzle-kit:*)",
+      "Bash(xargs cat:*)",
+      "Bash(pnpm next dev)",
+      "Bash(netstat:*)",
+      "Bash(powershell \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\")"
     ]
   },
   "hooks": {

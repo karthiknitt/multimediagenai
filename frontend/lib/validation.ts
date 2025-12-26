@@ -31,7 +31,7 @@ export const imageGenerationSchema = z.object({
     .string()
     .min(3, "Prompt must be at least 3 characters")
     .max(2000, "Prompt must be less than 2000 characters"),
-  model: z.enum(["flux2-dev", "flux2-schnell"]),
+  model: z.enum(["flux1-dev", "flux2-dev", "flux2-schnell"]),
   steps: z.number().min(1).max(100).default(30),
   cfgScale: z.number().min(1).max(20).default(7),
   width: z.number().min(256).max(2048).default(1024),

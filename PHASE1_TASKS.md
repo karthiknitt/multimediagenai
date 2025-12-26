@@ -1317,6 +1317,417 @@
 
 ---
 
+## Phase 1E-TTS: Text-to-Speech Generation (Week 3-4)
+
+### 1E-TTS.1 - F5-TTS Model Research & Selection
+**Status:** ✅ Complete
+
+**Decision:** F5-TTS on A10G GPU
+
+**Rationale:**
+- State-of-the-art quality (Jan 2025)
+- Fast inference (4-6s for 30s audio)
+- Low VRAM (6-8GB)
+- MIT License (commercial-friendly)
+- Voice cloning capability (3-10s reference)
+- Multi-language support
+
+---
+
+### 1E-TTS.2 - Modal TTS App Setup
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Create `backend/tts-gen/` directory
+- [ ] Create `main.py` with Modal app config
+- [ ] Configure A10G GPU settings
+- [ ] Create Modal Volume for F5-TTS model (`tts-models`)
+- [ ] Create `requirements.txt` with dependencies
+- [ ] Create `README.md` with deployment instructions
+
+**Files to Create:**
+- `backend/tts-gen/main.py`
+- `backend/tts-gen/requirements.txt`
+- `backend/tts-gen/README.md`
+
+**GPU Configuration:**
+```python
+@app.cls(
+    gpu="A10G",
+    timeout=300,  # 5 min
+    container_idle_timeout=180,  # 3 min warm cache
+    volumes={"/models": tts_volume},
+    memory=16384,  # 16GB RAM
+)
+```
+
+**Requirements:**
+```
+f5-tts
+torch>=2.0.0
+torchaudio
+transformers
+psycopg2-binary
+boto3
+python-dotenv
+```
+
+**Acceptance Criteria:**
+- Modal app created successfully
+- A10G GPU configured
+- Volume ready for models
+- Dependencies installed
+
+---
+
+### 1E-TTS.3 - F5-TTS Model Download
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Install F5-TTS library
+- [ ] Download F5-TTS base model to Modal Volume
+- [ ] Download vocoder model (if needed)
+- [ ] Verify VRAM usage (~6-8GB)
+- [ ] Test model loading speed
+- [ ] Create model download script
+
+**Files to Update:**
+- `backend/tts-gen/main.py` (add download_models function)
+
+**Model Download:**
+```python
+from f5_tts import load_model
+
+@app.function(volumes={"/models": tts_volume})
+def download_models():
+    model = load_model("F5-TTS", cache_dir="/models")
+    # Download vocoder if needed
+    print("Models downloaded successfully")
+```
+
+**Acceptance Criteria:**
+- F5-TTS model downloaded (~8GB)
+- Model loads correctly
+- VRAM usage within budget (6-8GB)
+- Total volume size <10GB
+
+---
+
+### 1E-TTS.4 - TTS Generation Implementation
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Implement F5-TTS inference logic
+- [ ] Add text preprocessing (SSML support optional)
+- [ ] Implement voice cloning from reference audio
+- [ ] Add multi-language support (English priority)
+- [ ] Implement speed control (0.8x - 1.5x)
+- [ ] Add emotion/style control (optional)
+- [ ] Add waveform generation
+- [ ] Implement error handling
+
+**Files to Update:**
+- `backend/tts-gen/main.py` (TTSGenerator class)
+
+**Core Implementation:**
+```python
+class TTSGenerator:
+    def __init__(self):
+        self.model = load_model("F5-TTS", cache_dir="/models")
+
+    def generate_speech(
+        self,
+        text: str,
+        voice_reference_url: str = None,
+        language: str = "en",
+        speed: float = 1.0,
+        emotion: str = None
+    ):
+        # Preprocess text
+        # Load voice reference if provided
+        # Generate speech with F5-TTS
+        # Apply speed adjustment
+        # Return audio array
+```
+
+**Acceptance Criteria:**
+- Text-to-speech working
+- Voice cloning functional (3-10s reference)
+- Multiple languages supported
+- Generation time <6s for 30s audio
+- Speed control working
+- Error handling robust
+
+---
+
+### 1E-TTS.5 - Modal API - TTS Endpoint
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Create `/generate` FastAPI endpoint
+- [ ] Add request validation (Pydantic models)
+- [ ] Implement TTS generation task
+- [ ] Add progress tracking (direct DB updates via psycopg2)
+- [ ] Upload audio to R2 (speech/{date}/{job_id}.wav)
+- [ ] Return public R2 URL
+- [ ] Add comprehensive error handling
+- [ ] Test with various inputs
+
+**Files to Update:**
+- `backend/tts-gen/main.py` (FastAPI endpoint)
+
+**Request Schema:**
+```python
+class TTSRequest(BaseModel):
+    job_id: str
+    text: str  # max 500 chars for 30s
+    voice_reference_url: Optional[str] = None
+    language: str = "en"
+    speed: float = 1.0
+    emotion: Optional[str] = None
+```
+
+**Response Schema:**
+```python
+class TTSResponse(BaseModel):
+    job_id: str
+    status: str
+    output_url: Optional[str] = None
+    error: Optional[str] = None
+    processing_time_ms: int
+```
+
+**Acceptance Criteria:**
+- Endpoint responds correctly
+- Audio uploaded to R2 (speech/ directory)
+- Database updated with progress (0%, 50%, 100%)
+- Public URLs accessible
+- Error responses informative
+
+---
+
+### 1E-TTS.6 - Frontend - TTS Generation Page
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Create TTS generation page route
+- [ ] Add text input area (textarea, max 500 chars)
+- [ ] Add voice selector/uploader component
+- [ ] Add language dropdown (English priority)
+- [ ] Add speed slider (0.8x - 1.5x)
+- [ ] Add emotion/style input (optional)
+- [ ] Reuse generation layout from image/video pages
+- [ ] Add character counter
+- [ ] Implement real-time validation
+
+**Files to Create:**
+- `frontend/app/(dashboard)/generate/speech/page.tsx`
+- `frontend/components/generation/TTSControls.tsx`
+- `frontend/components/generation/VoiceSelector.tsx`
+
+**Page Structure:**
+```tsx
+export default function SpeechGenerationPage() {
+  return (
+    <DashboardLayout>
+      <div className="grid grid-cols-12 gap-6">
+        <aside className="col-span-3">
+          <TTSControls />
+        </aside>
+        <main className="col-span-6">
+          <TextInput maxChars={500} />
+          <WaveformPreview />
+        </main>
+        <aside className="col-span-3">
+          <VoiceLibrary />
+          <RecentGenerations />
+        </aside>
+      </div>
+    </DashboardLayout>
+  )
+}
+```
+
+**Acceptance Criteria:**
+- Page renders correctly
+- All controls functional
+- Layout consistent with other generation pages
+- Responsive on mobile
+- Character counter accurate
+
+---
+
+### 1E-TTS.7 - Frontend - Audio Waveform Component
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Create WaveformDisplay component
+- [ ] Add real-time waveform visualization
+- [ ] Integrate with AudioPlayer
+- [ ] Add playback controls (play/pause/seek)
+- [ ] Add volume control
+- [ ] Add download button
+- [ ] Make responsive
+
+**Files to Create:**
+- `frontend/components/generation/WaveformDisplay.tsx`
+
+**Libraries to Use:**
+- `wavesurfer.js` or `react-wavesurfer`
+
+**Component:**
+```tsx
+export function WaveformDisplay({ audioUrl }: { audioUrl: string }) {
+  return (
+    <div className="waveform-container">
+      <WaveSurfer url={audioUrl} />
+      <div className="controls">
+        <PlayButton />
+        <Seekbar />
+        <VolumeControl />
+        <DownloadButton />
+      </div>
+    </div>
+  )
+}
+```
+
+**Acceptance Criteria:**
+- Waveform displays correctly
+- Playback controls work
+- Seeking functional
+- Volume control working
+- Responsive on all devices
+
+---
+
+### 1E-TTS.8 - Database Schema - TTS Support
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Add 'speech' to generation type enum
+- [ ] Add 'f5-tts' to model enum
+- [ ] Update parameters jsonb to include TTS fields
+- [ ] Create migration file
+- [ ] Run migration
+- [ ] Test TTS generation saves correctly
+
+**Files to Update:**
+- `frontend/db/schema.ts`
+- Create new migration file
+
+**Schema Updates:**
+```typescript
+export const generations = pgTable('generations', {
+  // ... existing fields
+  type: text('type').$type<'image' | 'video' | 'audio' | 'speech'>(),
+  model: text('model').$type<'flux1-dev' | 'flux2-dev' | 'mochi-1' | 'cogvideox' | 'musicgen' | 'f5-tts'>(),
+  parameters: jsonb('parameters').$type<{
+    // ... existing fields
+    voiceReferenceUrl?: string
+    language?: string
+    speed?: number
+    emotion?: string
+  }>(),
+})
+```
+
+**Acceptance Criteria:**
+- Schema updated successfully
+- Migration runs without errors
+- TTS generations saved correctly
+- Can query speech generations
+- Parameters stored properly
+
+---
+
+### 1E-TTS.9 - Voice Library Implementation
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Create `voice_library` table in schema
+- [ ] Add predefined system voices (5-10)
+- [ ] Implement voice upload to R2 (voices/{user_id}/{voice_id}.wav)
+- [ ] Create voice cloning from upload
+- [ ] Create voice selector UI component
+- [ ] Add voice preview functionality
+- [ ] Create API routes for voice management
+
+**Files to Create:**
+- Migration file for voice_library table
+- `frontend/components/generation/VoiceLibrary.tsx`
+- `frontend/app/api/voices/route.ts`
+- `frontend/app/api/voices/[id]/route.ts`
+
+**voice_library Schema:**
+```typescript
+export const voiceLibrary = pgTable('voice_library', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id),  // null for system voices
+  name: text('name').notNull(),
+  description: text('description'),
+  referenceAudioUrl: text('reference_audio_url').notNull(),
+  language: text('language').notNull().default('en'),
+  isPublic: boolean('is_public').notNull().default(false),
+  isSystem: boolean('is_system').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+```
+
+**System Voices (Pre-load):**
+- Professional Male (English)
+- Professional Female (English)
+- Casual Male (English)
+- Casual Female (English)
+- Narrator (English)
+
+**Acceptance Criteria:**
+- Voice library table created
+- System voices pre-loaded
+- Users can upload voice samples
+- Voice cloning works from library
+- Voice preview plays audio
+- Voice selector UI functional
+
+---
+
+### 1E-TTS.10 - End-to-End Testing (TTS)
+**Status:** ⏳ Pending
+
+**Tasks:**
+- [ ] Test basic text-to-speech generation
+- [ ] Test voice cloning workflow (upload + generate)
+- [ ] Test multi-language generation (if implemented)
+- [ ] Verify audio quality
+- [ ] Verify generation times (<6s for 30s)
+- [ ] Verify costs (<$0.002 per 30s)
+- [ ] Test voice library functionality
+- [ ] Test error cases (invalid text, bad audio, etc.)
+- [ ] Fix any bugs found
+- [ ] Performance optimization if needed
+
+**Test Cases:**
+1. Basic TTS with system voice
+2. TTS with custom voice upload (3s, 5s, 10s samples)
+3. Long text (500 chars)
+4. Speed variations (0.8x, 1.0x, 1.5x)
+5. Different languages (if multi-language enabled)
+6. Error: text too long
+7. Error: invalid voice reference
+8. Voice library CRUD operations
+
+**Acceptance Criteria:**
+- TTS generation works end-to-end
+- Voice cloning functional
+- Performance targets met (<6s generation)
+- Cost targets met (<$0.002 per 30s)
+- Multi-language working (English minimum)
+- Voice library fully functional
+- All error cases handled gracefully
+- User experience smooth
+
+---
+
 ## Phase 1F: Polish & Optimization (Week 4)
 
 ### 1F.1 - Workflow Presets - Backend

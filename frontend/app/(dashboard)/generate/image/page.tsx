@@ -61,6 +61,21 @@ export default function ImageGenerationPage() {
   const seed = watch("seed");
   const negativePrompt = watch("negativePrompt");
 
+  // Update parameters when model changes
+  useEffect(() => {
+    const modelDefaults = {
+      "flux1-dev": { steps: 20, cfgScale: 3.5 },
+      "flux2-dev": { steps: 28, cfgScale: 4.0 },
+      "flux2-schnell": { steps: 4, cfgScale: 2.0 },
+    };
+
+    const defaults = modelDefaults[model as keyof typeof modelDefaults];
+    if (defaults) {
+      setValue("steps", defaults.steps);
+      setValue("cfgScale", defaults.cfgScale);
+    }
+  }, [model, setValue]);
+
   // SSE stream for progress updates
   const { lastEvent, isConnected } = useGenerationStream(activeJobId, {
     onProgress: (event) => {
@@ -180,7 +195,7 @@ export default function ImageGenerationPage() {
         <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">Model</h3>
         <ModelSelector
           value={model}
-          onChange={(value) => setValue("model", value as "flux2-dev" | "flux2-schnell")}
+          onChange={(value) => setValue("model", value as "flux1-dev" | "flux2-dev" | "flux2-schnell")}
           models={imageModels}
           disabled={isGenerating}
         />
@@ -266,7 +281,7 @@ export default function ImageGenerationPage() {
           <span className="gradient-text">Image Generation</span>
         </h1>
         <p className="text-foreground/60 text-lg">
-          Create stunning images from text descriptions using FLUX.2
+          Create stunning images from text descriptions using FLUX models
         </p>
       </header>
 
