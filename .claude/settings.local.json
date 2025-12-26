@@ -89,7 +89,8 @@
       "Bash(modal call:*)",
       "Bash(modal container list:*)",
       "Bash(modal container logs:*)",
-      "Bash(chcp 65001)"
+      "Bash(chcp 65001)",
+      "Bash(mv:*)"
     ]
   },
   "hooks": {
