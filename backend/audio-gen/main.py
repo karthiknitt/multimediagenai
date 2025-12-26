@@ -103,8 +103,10 @@ class AudioGenerator:
             # Save audio locally
             output_path = f"/tmp/{job_id}.wav"
             sampling_rate = model.config.audio_encoder.sampling_rate
-            audio_np = audio_values[0, 0].cpu().numpy()
-            write_wav(output_path, sampling_rate, audio_np)
+            # Convert from float16/float32 to int16 for WAV format
+            audio_np = audio_values[0, 0].cpu().float().numpy()  # Convert to float32 first
+            audio_int16 = (audio_np * 32767).astype(np.int16)
+            write_wav(output_path, sampling_rate, audio_int16)
 
             # Upload to R2
             s3_client = boto3.client(
