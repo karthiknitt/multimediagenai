@@ -1,0 +1,11 @@
+✓ Created objects.
+├── 🔨 Created mount D:\ImageAndVideoGenerator\backend\audio-gen\main.py
+├── 🔨 Created function AudioGenerator.*.
+├── 🔨 Created function health.
+├── 🔨 Created function gpu_info.
+└── 🔨 Created web endpoint for AudioGenerator.generate => 
+    https://karthiknitt--audio-generation-audiogenerator-generate.modal.run
+✓ App deployed in 4.276s! 🎉
+
+View Deployment: 
+https://modal.com/apps/karthiknitt/main/deployed/audio-generation

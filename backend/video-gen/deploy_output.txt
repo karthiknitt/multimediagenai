@@ -1,0 +1,15 @@
+✓ Created objects.
+├── 🔨 Created mount D:\ImageAndVideoGenerator\backend\video-gen\main.py
+├── 🔨 Created function gpu_info.
+├── 🔨 Created function health.
+├── 🔨 Created function VideoGenerator.*.
+├── 🔨 Created web endpoint for VideoGenerator.generate_text2video => 
+│   https://karthiknitt--video-generation-videogenerator-generate-te-dfe008.mod
+│   al.run (label truncated)
+└── 🔨 Created web endpoint for VideoGenerator.generate_img2video => 
+    https://karthiknitt--video-generation-videogenerator-generate-img2video.mod
+    al.run
+✓ App deployed in 5.812s! 🎉
+
+View Deployment: 
+https://modal.com/apps/karthiknitt/main/deployed/video-generation

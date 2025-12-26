@@ -88,7 +88,8 @@
       "Bash(timeout:*)",
       "Bash(modal call:*)",
       "Bash(modal container list:*)",
-      "Bash(modal container logs:*)"
+      "Bash(modal container logs:*)",
+      "Bash(chcp 65001)"
     ]
   },
   "hooks": {
