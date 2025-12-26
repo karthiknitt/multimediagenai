@@ -1,0 +1,10 @@
+torch==2.5.1
+torchvision==0.20.1
+diffusers==0.32.1
+transformers==4.46.3
+accelerate==1.2.1
+sentencepiece==0.2.0
+protobuf==5.29.2
+boto3==1.35.80
+psycopg2-binary==2.9.10
+torchao==0.15.0
