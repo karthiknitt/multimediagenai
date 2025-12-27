@@ -67,10 +67,10 @@ async function generateImage(input: ImageGenerationInput): Promise<{ jobId: stri
 }
 
 async function generateVideo(input: VideoGenerationInput): Promise<{ jobId: string }> {
-  const response = await fetch("/api/generate", {
+  const response = await fetch("/api/generate-video", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "video", ...input }),
+    body: JSON.stringify(input),
   });
   if (!response.ok) {
     const error = await response.json();

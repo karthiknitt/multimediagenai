@@ -15,13 +15,11 @@ export interface ImageParams {
 
 export interface VideoParams {
   prompt: string;
-  model: "mochi" | "cogvideox";
   variant: "text2video" | "img2video";
-  duration: number;
-  fps: number;
-  motionStrength: number;
-  sourceImageUrl?: string;
+  numFrames: number;
+  cfgScale: number;
   seed?: number;
+  sourceImageUrl?: string;
 }
 
 export interface AudioParams {
@@ -83,11 +81,9 @@ const defaultImageParams: ImageParams = {
 
 const defaultVideoParams: VideoParams = {
   prompt: "",
-  model: "mochi",
   variant: "text2video",
-  duration: 5,
-  fps: 30,
-  motionStrength: 5,
+  numFrames: 64,
+  cfgScale: 7.5,
 };
 
 const defaultAudioParams: AudioParams = {

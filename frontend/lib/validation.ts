@@ -46,13 +46,11 @@ export const videoGenerationSchema = z.object({
     .string()
     .min(3, "Prompt must be at least 3 characters")
     .max(2000, "Prompt must be less than 2000 characters"),
-  model: z.enum(["mochi", "cogvideox"]),
   variant: z.enum(["text2video", "img2video"]),
-  duration: z.number().min(1).max(10).default(5),
-  fps: z.number().min(15).max(30).default(30),
-  motionStrength: z.number().min(1).max(10).default(5),
-  sourceImageUrl: z.string().url().optional(),
+  numFrames: z.number().min(1).max(162).default(64), // Mochi: 64 frames, CogVideoX: 49 frames
+  cfgScale: z.number().min(1).max(20).default(7.5), // Mochi: 7.5, CogVideoX: 6.0
   seed: z.number().optional(),
+  sourceImageUrl: z.union([z.string().url(), z.undefined()]).optional(), // Required for img2video variant
 });
 
 // Audio generation validation schemas
