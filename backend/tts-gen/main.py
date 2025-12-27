@@ -35,11 +35,28 @@ image = (
     )
 )
 
+# Voice preset definitions
+VOICE_PRESETS = {
+    "basic_en": {
+        "file": "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav",
+        "text": "",  # Empty string means auto-transcribe
+        "language": "en",
+        "description": "Basic English voice (neutral, clear)"
+    },
+    "basic_zh": {
+        "file": "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_zh.wav",
+        "text": "",
+        "language": "zh",
+        "description": "Basic Chinese voice"
+    }
+}
+
 # Pydantic models for request/response
 class TTSRequest(BaseModel):
     job_id: str
     text: str  # max 500 chars for ~30s audio
     voice_reference_url: Optional[str] = None
+    voice_preset: Optional[str] = None  # Key from VOICE_PRESETS
     language: str = "en"
     speed: float = 1.0
     emotion: Optional[str] = None
@@ -185,26 +202,45 @@ class TTSGenerator:
         self,
         text: str,
         voice_reference_url: Optional[str] = None,
+        voice_preset: Optional[str] = None,
         language: str = "en",
         speed: float = 1.0,
     ) -> bytes:
         """Generate speech using F5-TTS"""
         import soundfile as sf
         import numpy as np
+        import requests
 
         # Preprocess text
         text = text.strip()
         if len(text) > 500:
             text = text[:500]
 
-        # Generate speech
-        # F5-TTS requires reference audio - use example audio from package
-        # If voice_reference_url is provided, download and use it for cloning
-        if voice_reference_url:
-            # TODO: Download reference audio from URL
-            # For now, use default voice
-            ref_file = "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav"
-            ref_text = ""  # Empty string means auto-transcribe
+        # Determine reference audio to use
+        # Priority: voice_preset > voice_reference_url > default
+        if voice_preset and voice_preset in VOICE_PRESETS:
+            # Use preset voice
+            preset = VOICE_PRESETS[voice_preset]
+            ref_file = preset["file"]
+            ref_text = preset["text"]
+            print(f"Using voice preset: {voice_preset}")
+        elif voice_reference_url:
+            # Download custom reference audio from URL
+            try:
+                print(f"Downloading custom voice reference from: {voice_reference_url}")
+                response = requests.get(voice_reference_url, timeout=10)
+                response.raise_for_status()
+
+                # Save to temp file
+                ref_file = f"/tmp/custom_ref_{os.urandom(8).hex()}.wav"
+                with open(ref_file, 'wb') as f:
+                    f.write(response.content)
+                ref_text = ""  # Auto-transcribe
+                print("Custom voice reference downloaded successfully")
+            except Exception as e:
+                print(f"Failed to download custom voice: {e}, falling back to default")
+                ref_file = "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav"
+                ref_text = ""
         else:
             # Use default reference audio from F5-TTS examples
             ref_file = "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav"
@@ -238,6 +274,7 @@ class TTSGenerator:
             audio_data = self.generate_speech(
                 text=request.text,
                 voice_reference_url=request.voice_reference_url,
+                voice_preset=request.voice_preset,
                 language=request.language,
                 speed=request.speed,
             )
@@ -279,6 +316,21 @@ class TTSGenerator:
                 error=error_msg,
                 processing_time_ms=int((time.time() - start_time) * 1000)
             )
+
+
+@app.function()
+def list_voice_presets():
+    """List available voice presets"""
+    return {
+        "presets": [
+            {
+                "id": key,
+                "description": preset["description"],
+                "language": preset["language"]
+            }
+            for key, preset in VOICE_PRESETS.items()
+        ]
+    }
 
 
 @app.local_entrypoint()

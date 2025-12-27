@@ -1,0 +1,5 @@
+.claude
+*.md
+!README.md
+archive/
+docs/

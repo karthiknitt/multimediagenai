@@ -23,9 +23,19 @@ export interface VideoParams {
 }
 
 export interface AudioParams {
+  variant: "music" | "tts";
+
+  // MusicGen fields
   prompt: string;
   duration: number;
-  temperature: number;
+  guidanceScale: number;
+
+  // F5-TTS fields
+  text?: string;
+  voicePreset?: "basic_en" | "basic_zh" | "custom";
+  voiceReferenceUrl?: string;
+  language: "en" | "zh";
+  speed: number;
 }
 
 export interface GenerationJob {
@@ -87,9 +97,12 @@ const defaultVideoParams: VideoParams = {
 };
 
 const defaultAudioParams: AudioParams = {
+  variant: "music",
   prompt: "",
   duration: 30,
-  temperature: 1,
+  guidanceScale: 3.0,
+  language: "en",
+  speed: 1.0,
 };
 
 export const useGenerationStore = create<GenerationStore>()(

@@ -265,16 +265,21 @@ class VideoGenerator:
 
             query = """
                 UPDATE generations
-                SET status = %s, progress = %s, "progressMessage" = %s
+                SET status = %s, progress = %s, progress_message = %s
             """
             params = [status, progress, message]
 
+            # If status is failed, also update the error column
+            if status == "failed":
+                query += ', error = %s'
+                params.append(message)
+
             if output_url:
-                query += ', "outputUrl" = %s'
+                query += ', output_url = %s'
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ', "processingTimeMs" = %s, "completedAt" = NOW()'
+                query += ', processing_time_ms = %s, completed_at = NOW()'
                 params.append(processing_time_ms)
 
             query += " WHERE id = %s"

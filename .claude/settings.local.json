@@ -95,7 +95,13 @@
       "Bash(xargs cat:*)",
       "Bash(pnpm next dev)",
       "Bash(netstat:*)",
-      "Bash(powershell \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\")"
+      "Bash(powershell \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Skill(webapp-testing)",
+      "Skill(webapp-testing:*)",
+      "Bash(powershell:*)",
+      "Bash(echo \"# Video Generation API Base URL\nVIDEO_API_URL=https://karthiknitt--video-generation-videogenerator\")",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(echo:*)"
     ]
   },
   "hooks": {

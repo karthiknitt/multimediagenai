@@ -13,7 +13,7 @@ db_secret = modal.Secret.from_name("database-credentials")
 hf_secret = modal.Secret.from_name("hf-token")
 
 @app.cls(
-    gpu="A100-80GB",
+    gpu="H100",  # H100 80GB, may upgrade to H200 141GB automatically
     timeout=300,  # 5 min max
     scaledown_window=300,  # Keep warm 5 min
     volumes={"/models": volume},
@@ -42,53 +42,35 @@ class Flux2Generator:
         self.pipe = None
 
     def _load_flux2(self):
-        """Lazy load FLUX.2 [dev] with remote text encoder (lower VRAM)"""
+        """Lazy load FLUX.2 [dev] on H100 GPU with optimized memory"""
         if self.pipe is None:
             from diffusers import Flux2Pipeline
             import torch
             import os
 
-            print("Loading FLUX.2 [dev] with remote text encoder...")
+            print("Loading FLUX.2 [dev] on H100 with memory optimization...")
 
-            # Use remote text encoder to minimize VRAM (~18GB VRAM)
+            # Load with memory optimizations
             repo_id = "black-forest-labs/FLUX.2-dev"
             torch_dtype = torch.bfloat16
 
-            print("Building pipeline (text encoding will be remote)...")
+            print("Building pipeline with CPU offloading...")
             self.pipe = Flux2Pipeline.from_pretrained(
                 repo_id,
-                text_encoder=None,  # Will use remote text encoder
                 torch_dtype=torch_dtype,
                 cache_dir="/models",
                 token=os.environ.get("HF_TOKEN")
             )
 
-            self.pipe.to("cuda")
-            self.pipe.enable_model_cpu_offload()  # Save VRAM with CPU offloading
-            print("FLUX.2 loaded successfully!")
+            # Use model CPU offloading to save VRAM
+            # This moves model components to CPU when not in use
+            self.pipe.enable_model_cpu_offload()
+
+            # Enable memory efficient attention
+            self.pipe.enable_attention_slicing(1)
+
+            print("FLUX.2 loaded successfully with memory optimizations!")
         return self.pipe
-
-    def _remote_text_encoder(self, prompt):
-        """Use Hugging Face's remote text encoder for FLUX.2"""
-        import requests
-        import io
-        import torch
-        import os
-
-        response = requests.post(
-            "https://remote-text-encoder-flux-2.huggingface.co/predict",
-            json={"prompt": prompt},
-            headers={
-                "Authorization": f"Bearer {os.environ.get('HF_TOKEN')}",
-                "Content-Type": "application/json"
-            }
-        )
-
-        if response.status_code != 200:
-            raise Exception(f"Remote text encoder failed: {response.text}")
-
-        prompt_embeds = torch.load(io.BytesIO(response.content))
-        return prompt_embeds.to("cuda")
 
     @modal.fastapi_endpoint(method="POST")
     def generate(self, request: dict):
@@ -110,10 +92,6 @@ class Flux2Generator:
             self._update_db(job_id, "processing", 10, "Loading FLUX.2 model...")
             pipe = self._load_flux2()
 
-            # Update DB: encoding prompt
-            self._update_db(job_id, "processing", 20, "Encoding prompt (remote)...")
-            prompt_embeds = self._remote_text_encoder(prompt)
-
             # Update DB: generating
             self._update_db(job_id, "processing", 30, "Generating image...")
 
@@ -121,7 +99,7 @@ class Flux2Generator:
             start_time = datetime.now(timezone.utc)
 
             image = pipe(
-                prompt_embeds=prompt_embeds,
+                prompt=prompt,
                 height=params.get("height", 1024),
                 width=params.get("width", 1024),
                 num_inference_steps=params.get("steps", 28),  # 28 is recommended trade-off
@@ -158,7 +136,7 @@ class Flux2Generator:
             )
 
             # Generate public URL
-            output_url = f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev/{s3_key}"
+            output_url = f"{os.environ['R2_PUBLIC_URL']}/{s3_key}"
 
             # Update DB: completed
             self._update_db(
@@ -193,16 +171,21 @@ class Flux2Generator:
 
             query = """
                 UPDATE generations
-                SET status = %s, progress = %s, "progressMessage" = %s
+                SET status = %s, progress = %s, progress_message = %s
             """
             params = [status, progress, message]
 
+            # If status is failed, also update the error column
+            if status == "failed":
+                query += ', error = %s'
+                params.append(message)
+
             if output_url:
-                query += ', "outputUrl" = %s'
+                query += ', output_url = %s'
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ', "processingTimeMs" = %s, "completedAt" = NOW()'
+                query += ', processing_time_ms = %s, completed_at = NOW()'
                 params.append(processing_time_ms)
 
             query += " WHERE id = %s"
@@ -221,11 +204,11 @@ def health():
     return {
         "status": "healthy",
         "service": "flux2-generation",
-        "model": "FLUX.2-dev (with remote text encoder)",
-        "vram": "~18GB"
+        "model": "FLUX.2-dev (H100)",
+        "gpu": "H100 80GB (may auto-upgrade to H200 141GB)"
     }
 
-@app.function(gpu="A100-80GB")
+@app.function(gpu="H100")
 def gpu_info():
     import torch
     return {

@@ -80,10 +80,10 @@ async function generateVideo(input: VideoGenerationInput): Promise<{ jobId: stri
 }
 
 async function generateAudio(input: AudioGenerationInput): Promise<{ jobId: string }> {
-  const response = await fetch("/api/generate", {
+  const response = await fetch("/api/generate-audio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "audio", ...input }),
+    body: JSON.stringify(input),
   });
   if (!response.ok) {
     const error = await response.json();

@@ -55,13 +55,45 @@ export const videoGenerationSchema = z.object({
 
 // Audio generation validation schemas
 export const audioGenerationSchema = z.object({
+  // Common field
+  variant: z.enum(["music", "tts"]),
+
+  // MusicGen fields (music variant)
   prompt: z
     .string()
     .min(3, "Prompt must be at least 3 characters")
-    .max(1000, "Prompt must be less than 1000 characters"),
+    .max(2000, "Prompt must be less than 2000 characters")
+    .optional(),
   duration: z.number().min(5).max(60).default(30),
-  temperature: z.number().min(0.1).max(2).default(1),
-});
+  guidanceScale: z.number().min(1).max(20).default(3.0),
+
+  // F5-TTS fields (tts variant)
+  text: z
+    .string()
+    .min(3, "Text must be at least 3 characters")
+    .max(500, "Text must be less than 500 characters for optimal results")
+    .optional(),
+  voicePreset: z.enum(["basic_en", "basic_zh", "custom"]).default("basic_en"),
+  voiceReferenceUrl: z.union([z.string().url(), z.undefined()]).optional(),
+  language: z.enum(["en", "zh"]).default("en"),
+  speed: z.number().min(0.5).max(2.0).default(1.0),
+}).refine(
+  (data) => {
+    // For music variant, prompt is required
+    if (data.variant === "music" && !data.prompt) {
+      return false;
+    }
+    // For TTS variant, text is required
+    if (data.variant === "tts" && !data.text) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Music variant requires prompt, TTS variant requires text",
+    path: ["prompt"],
+  }
+);
 
 // Type exports
 export type LoginInput = z.infer<typeof loginSchema>;
