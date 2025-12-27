@@ -47,11 +47,53 @@ export async function GET(
     async start(controller) {
       const startTime = Date.now();
       let lastProgress = 0;
+      let isClosed = false;
 
       const sendEvent = (data: Record<string, unknown>) => {
-        const event = `data: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(event));
+        if (isClosed) return;
+        try {
+          const event = `data: ${JSON.stringify(data)}\n\n`;
+          controller.enqueue(encoder.encode(event));
+        } catch (error) {
+          console.error("Error sending SSE event:", error);
+          isClosed = true;
+        }
       };
+
+      const closeStream = () => {
+        if (isClosed) return;
+        isClosed = true;
+        try {
+          controller.close();
+        } catch (error) {
+          console.error("Error closing controller:", error);
+        }
+      };
+
+      // Check if job is already completed/failed before polling
+      // This handles reconnections where the job finished while client was disconnected
+      if (job.status === "completed") {
+        sendEvent({
+          type: "completed",
+          jobId,
+          progress: 100,
+          outputUrl: job.outputUrl,
+          timestamp: new Date().toISOString(),
+        });
+        closeStream();
+        return;
+      }
+
+      if (job.status === "failed") {
+        sendEvent({
+          type: "failed",
+          jobId,
+          error: job.error || "Generation failed",
+          timestamp: new Date().toISOString(),
+        });
+        closeStream();
+        return;
+      }
 
       // Send initial heartbeat
       sendEvent({
@@ -62,6 +104,8 @@ export async function GET(
 
       // Poll for updates
       const pollForUpdates = async () => {
+        if (isClosed) return; // Don't poll if stream is closed
+
         try {
           const [currentJob] = await db
             .select()
@@ -76,7 +120,7 @@ export async function GET(
               error: "Job not found",
               timestamp: new Date().toISOString(),
             });
-            controller.close();
+            closeStream();
             return;
           }
 
@@ -88,7 +132,7 @@ export async function GET(
               error: "Generation timed out",
               timestamp: new Date().toISOString(),
             });
-            controller.close();
+            closeStream();
             return;
           }
 
@@ -101,7 +145,7 @@ export async function GET(
               outputUrl: currentJob.outputUrl,
               timestamp: new Date().toISOString(),
             });
-            controller.close();
+            closeStream();
             return;
           }
 
@@ -113,7 +157,7 @@ export async function GET(
               error: currentJob.error || "Generation failed",
               timestamp: new Date().toISOString(),
             });
-            controller.close();
+            closeStream();
             return;
           }
 
@@ -141,8 +185,10 @@ export async function GET(
             }
           }
 
-          // Continue polling
-          setTimeout(pollForUpdates, POLL_INTERVAL);
+          // Continue polling if not closed
+          if (!isClosed) {
+            setTimeout(pollForUpdates, POLL_INTERVAL);
+          }
         } catch (error) {
           console.error("SSE poll error:", error);
           sendEvent({
@@ -151,7 +197,7 @@ export async function GET(
             error: "Failed to check generation status",
             timestamp: new Date().toISOString(),
           });
-          controller.close();
+          closeStream();
         }
       };
 
