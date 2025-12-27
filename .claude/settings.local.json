@@ -101,7 +101,8 @@
       "Bash(powershell:*)",
       "Bash(echo \"# Video Generation API Base URL\nVIDEO_API_URL=https://karthiknitt--video-generation-videogenerator\")",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(touch:*)"
     ]
   },
   "hooks": {

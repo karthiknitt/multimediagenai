@@ -3,22 +3,53 @@ import Link from "next/link";
 import { Image, Video, Music, Zap, HardDrive, TrendingUp, Sparkles, ArrowRight } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentGenerations } from "@/components/dashboard/RecentGenerations";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Dashboard - AI Video Gen",
   description: "Your AI generation dashboard",
 };
 
-export default function DashboardPage() {
-  // TODO: Fetch real stats from API
-  const stats = {
-    totalGenerations: 127,
-    imagesGenerated: 89,
-    videosGenerated: 28,
-    audioGenerated: 10,
-    storageUsedMB: 2450,
-    remainingGenerations: 8,
-  };
+async function getDashboardStats() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dashboard/stats`, {
+      headers: await headers(),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch stats");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    // Return default values on error
+    return {
+      totalGenerations: 0,
+      imagesGenerated: 0,
+      videosGenerated: 0,
+      audioGenerated: 0,
+      storageUsedMB: 0,
+      remainingGenerations: 10,
+    };
+  }
+}
+
+export default async function DashboardPage() {
+  // Check authentication
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  // Fetch real stats from API
+  const stats = await getDashboardStats();
 
   return (
     <div className="space-y-8">
@@ -155,7 +186,7 @@ export default function DashboardPage() {
             </div>
             <div className="relative text-center">
               <span className="font-bold text-lg block mb-1">Generate Audio</span>
-              <span className="text-sm text-foreground/60 mono">MusicGen Large</span>
+              <span className="text-sm text-foreground/60 mono">MusicGen-Large · F5-TTS</span>
             </div>
           </Link>
         </div>

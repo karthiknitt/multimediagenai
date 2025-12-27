@@ -199,12 +199,11 @@ Build a comprehensive AI-powered video production platform that evolves from bas
 **Pages:**
 - `/` - Landing page (hero, features, pricing) ✅
 - `/login`, `/signup` - Authentication ✅
-- `/dashboard` - User dashboard with stats ✅
-- `/generate/image` - Image generation interface ✅
-- `/generate/video` - Video generation (text2video + img2video) ⏳
-- `/generate/audio` - Audio/music generation ⏳
-- `/generate/speech` - TTS generation (NEW) ⏳
-- `/gallery` - Media library with search/filter ❌
+- `/dashboard` - User dashboard with real-time stats from DB ✅
+- `/generate/image` - Image generation interface (FLUX.1/FLUX.2) ✅
+- `/generate/video` - Video generation (text2video + img2video) ✅
+- `/generate/audio` - Audio/music generation (MusicGen-Large + F5-TTS) ✅
+- `/gallery` - Media library with filters, pagination, download/delete ✅
 - `/editor` - Video timeline editor (Phase 2) ❌
 - `/projects` - Project management (Phase 2) ❌
 

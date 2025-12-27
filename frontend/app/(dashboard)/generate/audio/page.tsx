@@ -209,7 +209,7 @@ export default function AudioGenerationPage() {
       <div className="card-premium p-6" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 1 }}>
         <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">Mode</h3>
         <Tabs value={variant} onValueChange={(v) => setVariant(v as "music" | "tts")}>
-          <TabsList className="grid w-full grid-cols-2" style={{ position: 'relative', zIndex: 10 }}>
+          <TabsList className="grid w-full grid-cols-2 border-2 border-cyan-500/30" style={{ position: 'relative', zIndex: 10 }}>
             <TabsTrigger value="music" className="flex items-center gap-2" type="button">
               <Music className="h-4 w-4" />
               Music

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "@/lib/date-utils";
-import { Image, Video, Music, ExternalLink, Loader2, ArrowRight } from "lucide-react";
+import { Image, Video, Music, Mic, ExternalLink, Loader2, ArrowRight } from "lucide-react";
 import { useGenerations } from "@/hooks/useGeneration";
 import { cn } from "@/lib/utils";
 
@@ -10,12 +10,14 @@ const typeIcons = {
   image: Image,
   video: Video,
   audio: Music,
+  speech: Mic,
 };
 
 const typeColors = {
   image: "text-cyan-400",
   video: "text-magenta-400",
   audio: "text-blue-400",
+  speech: "text-blue-400",
 };
 
 const statusColors = {
@@ -24,6 +26,21 @@ const statusColors = {
   completed: "bg-green-400/80",
   failed: "bg-red-400/80",
 };
+
+// Helper to get generation variant label
+function getVariantLabel(gen: any): string {
+  if (gen.type === "video") {
+    // Check if it's img2video or text2video based on sourceImageUrl
+    return gen.sourceImageUrl ? "img2video" : "text2video";
+  }
+  if (gen.type === "audio") {
+    return "Music";
+  }
+  if (gen.type === "speech") {
+    return "Speech";
+  }
+  return gen.type;
+}
 
 export function RecentGenerations() {
   const { data, isLoading, error } = useGenerations(1, 5);
@@ -94,16 +111,19 @@ export function RecentGenerations() {
         ) : (
           <div className="space-y-3">
             {generations.map((gen) => {
-              const Icon = typeIcons[gen.type];
-              const iconColor = typeColors[gen.type];
+              const Icon = typeIcons[gen.type as keyof typeof typeIcons] || Image;
+              const iconColor = typeColors[gen.type as keyof typeof typeColors] || "text-cyan-400";
+              const variantLabel = getVariantLabel(gen);
+              const showThumbnail = gen.type === "image" && gen.outputUrl;
+
               return (
                 <div
                   key={gen.id}
                   className="glass hover-glow group flex items-center gap-4 rounded-xl border border-foreground/10 p-4 transition-all"
                 >
-                  {/* Thumbnail */}
+                  {/* Thumbnail - only show for images, use icons for video/audio */}
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-foreground/5 overflow-hidden">
-                    {gen.outputUrl ? (
+                    {showThumbnail ? (
                       <img
                         src={gen.outputUrl}
                         alt={gen.prompt.slice(0, 50)}
@@ -120,7 +140,7 @@ export function RecentGenerations() {
                       {gen.prompt}
                     </p>
                     <div className="mt-1.5 flex items-center gap-2 text-xs text-foreground/60 mono">
-                      <span className="capitalize font-semibold">{gen.type}</span>
+                      <span className="capitalize font-semibold">{variantLabel}</span>
                       <span className="text-foreground/30">•</span>
                       <span>{gen.model}</span>
                       <span className="text-foreground/30">•</span>

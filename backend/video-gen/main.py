@@ -12,7 +12,7 @@ r2_secret = modal.Secret.from_name("r2-credentials")
 db_secret = modal.Secret.from_name("database-credentials")
 
 @app.cls(
-    gpu="A100-80GB",
+    gpu="H100",
     timeout=3600,  # 60 min max for videos (Mochi needs ~50-60 min for 162 frames)
     scaledown_window=300,  # Keep warm 5 min
     volumes={"/models": volume},
@@ -297,7 +297,10 @@ class VideoGenerator:
 def health():
     return {"status": "healthy", "service": "video-generation"}
 
-@app.function(gpu="A100-80GB")
+@app.function(
+    gpu="H100",
+    image=modal.Image.debian_slim(python_version="3.11").pip_install("torch==2.5.1")
+)
 def gpu_info():
     import torch
     return {
