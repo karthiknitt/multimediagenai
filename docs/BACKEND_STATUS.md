@@ -196,14 +196,14 @@ VIDEO_GEN_IMG2VIDEO_API_URL=https://karthiknitt--video-generation-videogenerator
 AUDIO_GEN_API_URL=https://karthiknitt--audio-generation-audiogenerator-generate.modal.run
 
 # R2 Configuration
-R2_ACCOUNT_ID=27ff2bec75ad03d16fb004d0c44b8ce1
-R2_ACCESS_KEY_ID=b8e1415cc494945480926c31b11596f4
-R2_SECRET_ACCESS_KEY=a6b837277577c97b888d0fe45f5b6cdd7fd2ef64dba6f5a10ac4755dd44237e8
+R2_ACCOUNT_ID=<your-r2-account-id>
+R2_ACCESS_KEY_ID=<your-r2-access-key-id>
+R2_SECRET_ACCESS_KEY=<your-r2-secret-access-key>
 R2_BUCKET_NAME=img-vid-aud
-R2_PUBLIC_URL=https://27ff2bec75ad03d16fb004d0c44b8ce1.r2.cloudflarestorage.com/img-vid-aud
+R2_PUBLIC_URL=https://<r2-account-id>.r2.cloudflarestorage.com/<bucket-name>
 
 # HuggingFace
-HF_TOKEN=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
+HF_TOKEN=<your-hf-token>
 ```
 
 ---
@@ -213,24 +213,24 @@ HF_TOKEN=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
 ### 1. `r2-credentials` (5 variables)
 ```bash
 modal secret create r2-credentials \
-  R2_ACCOUNT_ID=27ff2bec75ad03d16fb004d0c44b8ce1 \
-  R2_ACCESS_KEY_ID=b8e1415cc494945480926c31b11596f4 \
-  R2_SECRET_ACCESS_KEY=a6b837277577c97b888d0fe45f5b6cdd7fd2ef64dba6f5a10ac4755dd44237e8 \
+  R2_ACCOUNT_ID=<your-r2-account-id> \
+  R2_ACCESS_KEY_ID=<your-r2-access-key-id> \
+  R2_SECRET_ACCESS_KEY=<your-r2-secret-access-key> \
   R2_BUCKET_NAME=img-vid-aud \
-  R2_PUBLIC_URL=https://27ff2bec75ad03d16fb004d0c44b8ce1.r2.cloudflarestorage.com/img-vid-aud \
+  R2_PUBLIC_URL=https://<r2-account-id>.r2.cloudflarestorage.com/<bucket-name> \
   --force
 ```
 
 ### 2. `database-credentials`
 ```bash
 modal secret create database-credentials \
-  DATABASE_URL=postgresql://neondb_owner:npg_ozp5tFn1cVkQ@ep-broad-star-ad5h8hxl-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+  DATABASE_URL=postgresql://<user>:<password>@<host>/neondb?sslmode=require
 ```
 
 ### 3. `hf-token`
 ```bash
 modal secret create hf-token \
-  HF_TOKEN=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
+  HF_TOKEN=<your-hf-token>
 ```
 
 ---
@@ -249,7 +249,7 @@ curl -X POST "https://karthiknitt--image-generation-imagegenerator-generate.moda
 {
   "status": "success",
   "job_id": "test-001",
-  "output_url": "https://27ff2bec75ad03d16fb004d0c44b8ce1.r2.cloudflarestorage.com/img-vid-aud/generations/test-001.png",
+  "output_url": "https://<r2-account-id>.r2.dev/generations/test-001.png",
   "generation_time_seconds": 13.2
 }
 ```
@@ -270,7 +270,7 @@ curl -X POST "https://karthiknitt--video-generation-videogenerator-generate-te-d
 ```bash
 curl -X POST "https://karthiknitt--video-generation-videogenerator-generate-img2video.modal.run" \
   -H "Content-Type: application/json" \
-  -d '{"job_id":"i2v-test-001","prompt":"Waves crashing on the shore","image_url":"https://27ff2bec75ad03d16fb004d0c44b8ce1.r2.cloudflarestorage.com/img-vid-aud/generations/test-001.png","parameters":{"num_frames":49,"cfg_scale":6.0,"seed":42}}'
+  -d '{"job_id":"i2v-test-001","prompt":"Waves crashing on the shore","image_url":"https://<r2-account-id>.r2.dev/generations/test-001.png","parameters":{"num_frames":49,"cfg_scale":6.0,"seed":42}}'
 ```
 
 ### Audio Generation (Not Yet Tested ❌)
@@ -441,7 +441,7 @@ All three generation services have been successfully tested end-to-end with lazy
 {
   "status": "success",
   "job_id": "quick-final-test",
-  "output_url": "https://pub-27ff2bec75ad03d16fb004d0c44b8ce1.r2.dev/generations/quick-final-test.mp4",
+  "output_url": "https://pub-<r2-account-id>.r2.dev/generations/quick-final-test.mp4",
   "generation_time_seconds": 348.826
 }
 ```
@@ -455,7 +455,7 @@ All three generation services have been successfully tested end-to-end with lazy
 {
   "status": "success",
   "job_id": "img2vid-test-presigned",
-  "output_url": "https://pub-27ff2bec75ad03d16fb004d0c44b8ce1.r2.dev/generations/img2vid-test-presigned.mp4",
+  "output_url": "https://pub-<r2-account-id>.r2.dev/generations/img2vid-test-presigned.mp4",
   "generation_time_seconds": 231.177
 }
 ```
@@ -469,7 +469,7 @@ All three generation services have been successfully tested end-to-end with lazy
 {
   "status": "success",
   "job_id": "audio-final-test-1766731670",
-  "output_url": "https://pub-27ff2bec75ad03d16fb004d0c44b8ce1.r2.dev/generations/audio-final-test-1766731670.wav",
+  "output_url": "https://pub-<r2-account-id>.r2.dev/generations/audio-final-test-1766731670.wav",
   "generation_time_seconds": 28.983
 }
 ```
