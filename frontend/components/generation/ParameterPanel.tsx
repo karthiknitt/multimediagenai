@@ -4,7 +4,13 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Select, type SelectOption } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Dice6, Lock, Unlock } from "lucide-react";
@@ -13,8 +19,9 @@ import { cn } from "@/lib/utils";
 interface ParameterPanelProps {
   steps: number;
   onStepsChange: (value: number) => void;
-  cfgScale: number;
-  onCfgScaleChange: (value: number) => void;
+  // Unused by distilled Z-Image-Turbo (guidance is fixed to 0); kept for API compatibility
+  cfgScale?: number;
+  onCfgScaleChange?: (value: number) => void;
   width: number;
   height: number;
   onResolutionChange: (width: number, height: number) => void;
@@ -26,7 +33,13 @@ interface ParameterPanelProps {
   className?: string;
 }
 
-const resolutionOptions: SelectOption[] = [
+interface ResolutionOption {
+  value: string;
+  label: string;
+  description: string;
+}
+
+const resolutionOptions: ResolutionOption[] = [
   { value: "1024x1024", label: "1024 x 1024 (Square)", description: "1:1 aspect ratio" },
   { value: "1152x896", label: "1152 x 896 (Landscape)", description: "4:3 aspect ratio" },
   { value: "896x1152", label: "896 x 1152 (Portrait)", description: "3:4 aspect ratio" },
@@ -40,8 +53,6 @@ const resolutionOptions: SelectOption[] = [
 export function ParameterPanel({
   steps,
   onStepsChange,
-  cfgScale,
-  onCfgScaleChange,
   width,
   height,
   onResolutionChange,
@@ -83,11 +94,20 @@ export function ParameterPanel({
           <Label>Resolution</Label>
           <Select
             value={currentResolution}
-            options={resolutionOptions}
-            onChange={handleResolutionChange}
+            onValueChange={handleResolutionChange}
             disabled={disabled}
-            label="Select resolution"
-          />
+          >
+            <SelectTrigger aria-label="Select resolution">
+              <SelectValue placeholder="Select resolution" />
+            </SelectTrigger>
+            <SelectContent>
+              {resolutionOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label} - {option.description}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Steps */}
@@ -99,34 +119,14 @@ export function ParameterPanel({
           <Slider
             value={steps}
             min={1}
-            max={50}
+            max={12}
             step={1}
             onValueChange={onStepsChange}
             disabled={disabled}
             showValue={false}
           />
           <p className="text-xs text-muted-foreground">
-            More steps = higher quality but slower generation
-          </p>
-        </div>
-
-        {/* CFG Scale */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>CFG Scale</Label>
-            <span className="text-sm text-muted-foreground">{cfgScale}</span>
-          </div>
-          <Slider
-            value={cfgScale}
-            min={1}
-            max={20}
-            step={0.5}
-            onValueChange={onCfgScaleChange}
-            disabled={disabled}
-            showValue={false}
-          />
-          <p className="text-xs text-muted-foreground">
-            How closely to follow the prompt (7-8 recommended)
+            Z-Image-Turbo is a distilled model: 8-9 steps is optimal
           </p>
         </div>
 

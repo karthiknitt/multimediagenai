@@ -15,7 +15,7 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState([80]);
+  const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
 
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = volume[0] / 100;
+      audioRef.current.volume = volume / 100;
     }
   }, [volume]);
 
@@ -54,10 +54,10 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
     setIsPlaying(!isPlaying);
   };
 
-  const handleSeek = (value: number[]) => {
+  const handleSeek = (value: number) => {
     if (!audioRef.current) return;
-    audioRef.current.currentTime = value[0];
-    setCurrentTime(value[0]);
+    audioRef.current.currentTime = value;
+    setCurrentTime(value);
   };
 
   const toggleMute = () => {
@@ -110,7 +110,7 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
       {/* Seek Slider */}
       <div className="space-y-1">
         <Slider
-          value={[currentTime]}
+          value={currentTime}
           max={duration || 100}
           step={0.1}
           onValueChange={handleSeek}
@@ -146,14 +146,14 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
             onClick={toggleMute}
             className="h-8 w-8"
           >
-            {isMuted || volume[0] === 0 ? (
+            {isMuted || volume === 0 ? (
               <VolumeX className="h-4 w-4" />
             ) : (
               <Volume2 className="h-4 w-4" />
             )}
           </Button>
           <Slider
-            value={isMuted ? [0] : volume}
+            value={isMuted ? 0 : volume}
             max={100}
             step={1}
             onValueChange={setVolume}

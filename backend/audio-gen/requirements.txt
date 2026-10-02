@@ -1,6 +1,5 @@
-torch==2.5.1
-transformers==4.46.3
-scipy==1.14.1
+# ACE-Step 1.5 is installed from GitHub (pinned commit) inside the Modal image -
+# see audio_image in main.py. Only the glue deps are listed here.
 boto3==1.35.80
 psycopg2-binary==2.9.10
-fastapi==0.115.6
+huggingface_hub>=0.34.0

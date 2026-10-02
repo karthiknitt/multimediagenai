@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     let modelName: string;
 
     if (isMusicVariant) {
-      // MusicGen request
+      // ACE-Step music request
       modalRequest = {
         job_id: jobId,
         prompt: validatedData.prompt!,
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
           guidance_scale: validatedData.guidanceScale,
         },
       };
-      modelName = "musicgen-large";
+      modelName = "ace-step-1.5";
     } else {
-      // F5-TTS request
+      // Qwen3-TTS request
       modalRequest = {
         job_id: jobId,
         text: validatedData.text!,
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         language: validatedData.language,
         speed: validatedData.speed,
       };
-      modelName = "f5-tts";
+      modelName = "qwen3-tts";
     }
 
     // Insert record into database

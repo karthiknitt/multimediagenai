@@ -31,9 +31,10 @@ export const imageGenerationSchema = z.object({
     .string()
     .min(3, "Prompt must be at least 3 characters")
     .max(2000, "Prompt must be less than 2000 characters"),
-  model: z.enum(["flux1-dev", "flux2-dev", "flux2-schnell"]),
-  steps: z.number().min(1).max(100).default(30),
-  cfgScale: z.number().min(1).max(20).default(7),
+  model: z.enum(["z-image-turbo"]).default("z-image-turbo"),
+  // Z-Image-Turbo is a distilled 8-step model; guidance is fixed to 0 on the backend
+  steps: z.number().min(1).max(12).default(9),
+  cfgScale: z.number().min(0).max(20).default(0),
   width: z.number().min(256).max(2048).default(1024),
   height: z.number().min(256).max(2048).default(1024),
   seed: z.number().optional(),
@@ -47,8 +48,8 @@ export const videoGenerationSchema = z.object({
     .min(3, "Prompt must be at least 3 characters")
     .max(2000, "Prompt must be less than 2000 characters"),
   variant: z.enum(["text2video", "img2video"]),
-  numFrames: z.number().min(1).max(162).default(64), // Mochi: 64 frames, CogVideoX: 49 frames
-  cfgScale: z.number().min(1).max(20).default(7.5), // Mochi: 7.5, CogVideoX: 6.0
+  numFrames: z.number().min(5).max(121).default(81), // Wan2.2: 16 fps, 81 frames = ~5s (backend snaps to 4k+1)
+  cfgScale: z.number().min(1).max(20).default(4.0), // Wan2.2 T2V: 4.0, I2V: 3.5
   seed: z.number().optional(),
   sourceImageUrl: z.union([z.string().url(), z.undefined()]).optional(), // Required for img2video variant
 });
@@ -58,24 +59,24 @@ export const audioGenerationSchema = z.object({
   // Common field
   variant: z.enum(["music", "tts"]),
 
-  // MusicGen fields (music variant)
+  // ACE-Step fields (music variant)
   prompt: z
     .string()
     .min(3, "Prompt must be at least 3 characters")
     .max(2000, "Prompt must be less than 2000 characters")
     .optional(),
-  duration: z.number().min(5).max(60).default(30),
+  duration: z.number().min(10).max(60).default(30),
   guidanceScale: z.number().min(1).max(20).default(3.0),
 
-  // F5-TTS fields (tts variant)
+  // Qwen3-TTS fields (tts variant)
   text: z
     .string()
     .min(3, "Text must be at least 3 characters")
     .max(500, "Text must be less than 500 characters for optimal results")
     .optional(),
-  voicePreset: z.enum(["basic_en", "basic_zh", "custom"]).default("basic_en"),
+  voicePreset: z.enum(["ryan", "aiden", "vivian", "serena", "uncle_fu", "dylan", "eric", "ono_anna", "sohee", "custom"]).default("ryan"),
   voiceReferenceUrl: z.union([z.string().url(), z.undefined()]).optional(),
-  language: z.enum(["en", "zh"]).default("en"),
+  language: z.enum(["en", "zh", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"]).default("en"),
   speed: z.number().min(0.5).max(2.0).default(1.0),
 }).refine(
   (data) => {

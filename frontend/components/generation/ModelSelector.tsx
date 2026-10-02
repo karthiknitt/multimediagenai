@@ -112,47 +112,31 @@ export function ModelSelector({
 // Default models for image generation
 export const imageModels: ModelOption[] = [
   {
-    id: "flux1-dev",
-    name: "FLUX.1 Dev",
-    description: "Dual text encoders for enhanced prompt understanding. Excellent balance of quality and speed.",
-    speed: "medium",
-    quality: "high",
-    estimatedTime: "15-25s",
-  },
-  {
-    id: "flux2-dev",
-    name: "FLUX.2 Dev",
-    description: "Latest model with Mistral3 encoder. Superior quality and prompt following for detailed, artistic images.",
-    speed: "medium",
-    quality: "ultra",
-    estimatedTime: "25-35s",
-  },
-  {
-    id: "flux2-schnell",
-    name: "FLUX.2 Schnell",
-    description: "Fast generation with good quality. Great for quick iterations and testing ideas.",
+    id: "z-image-turbo",
+    name: "Z-Image Turbo",
+    description: "Open-source (Apache-2.0) 6B model. Sub-10s generation with photorealistic quality and accurate bilingual text rendering.",
     speed: "fast",
-    quality: "high",
-    estimatedTime: "8-12s",
+    quality: "ultra",
+    estimatedTime: "5-15s",
   },
 ];
 
 // Default models for video generation
 export const videoModels: ModelOption[] = [
   {
-    id: "mochi",
-    name: "Mochi 1",
-    description: "Text-to-video generation. Creates smooth, natural motion from text descriptions.",
+    id: "wan22-t2v",
+    name: "Wan2.2 T2V",
+    description: "Open-source (Apache-2.0) text-to-video MoE model. Cinematic 480p video with smooth, natural motion.",
     speed: "slow",
-    quality: "high",
-    estimatedTime: "2-3 min",
+    quality: "ultra",
+    estimatedTime: "5-8 min",
   },
   {
-    id: "cogvideox",
-    name: "CogVideoX-5B",
-    description: "Image-to-video generation. Animate your images with natural motion.",
-    speed: "medium",
-    quality: "high",
-    estimatedTime: "1-2 min",
+    id: "wan22-i2v",
+    name: "Wan2.2 I2V",
+    description: "Open-source (Apache-2.0) image-to-video MoE model. Animate your images with natural motion.",
+    speed: "slow",
+    quality: "ultra",
+    estimatedTime: "5-8 min",
   },
 ];

@@ -4,92 +4,107 @@ import io
 import time
 from datetime import datetime
 from pathlib import Path
-from pydantic import BaseModel
+from dataclasses import dataclass, asdict
 from typing import Optional
 
 # Modal app and volume setup
 app = modal.App("tts-generation")
-tts_volume = modal.Volume.from_name("tts-models", create_if_missing=True)
+tts_volume = modal.Volume.from_name("qwen3tts-models", create_if_missing=True)
 
-# Docker image with F5-TTS dependencies
+# Qwen3-TTS (Apache-2.0): CustomVoice = 9 premium preset speakers,
+# Base = 3-second voice cloning from a reference clip.
+CUSTOM_VOICE_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+CLONE_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
+
+# Docker image with Qwen3-TTS dependencies
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .env({"PYTHONIOENCODING": "utf-8", "LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"})
-    .apt_install("git", "ffmpeg")
+    .env({
+        "PYTHONIOENCODING": "utf-8",
+        "LC_ALL": "C.UTF-8",
+        "LANG": "C.UTF-8",
+        "HF_HOME": "/models/hf",  # model weights cached on the Modal volume
+    })
+    .apt_install("git", "ffmpeg", "sox", "libsox-fmt-all", "libsndfile1")
     .pip_install(
-        "torch>=2.0.0",
-        "torchaudio",
-        "transformers",
-        "accelerate",
+        "torch==2.8.0",
+        "torchaudio==2.8.0",
+        "qwen-tts==0.1.1",  # pins transformers==4.57.3 / accelerate==1.12.0
         "psycopg2-binary",
         "boto3",
-        "python-dotenv",
+        "requests",
         "numpy",
         "scipy",
         "soundfile",
-        "cached-path",
-        extra_options="--no-color --disable-pip-version-check",
-    )
-    .run_commands(
-        "export PIP_NO_COLOR=1 && pip install --no-color --disable-pip-version-check git+https://github.com/SWivid/F5-TTS.git",
+        "librosa",
+        "fastapi[standard]",
+        "huggingface_hub>=0.34.0",
     )
 )
 
-# Voice preset definitions
+# Voice preset definitions (Qwen3-TTS CustomVoice speakers)
 VOICE_PRESETS = {
-    "basic_en": {
-        "file": "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav",
-        "text": "",  # Empty string means auto-transcribe
-        "language": "en",
-        "description": "Basic English voice (neutral, clear)"
-    },
-    "basic_zh": {
-        "file": "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_zh.wav",
-        "text": "",
-        "language": "zh",
-        "description": "Basic Chinese voice"
-    }
+    "ryan": {"speaker": "Ryan", "language": "en", "description": "Dynamic male voice with strong rhythmic drive"},
+    "aiden": {"speaker": "Aiden", "language": "en", "description": "Sunny American male voice with a clear midrange"},
+    "vivian": {"speaker": "Vivian", "language": "zh", "description": "Bright, slightly edgy young female voice"},
+    "serena": {"speaker": "Serena", "language": "zh", "description": "Warm, gentle young female voice"},
+    "uncle_fu": {"speaker": "Uncle_Fu", "language": "zh", "description": "Seasoned male voice with a low, mellow timbre"},
+    "dylan": {"speaker": "Dylan", "language": "zh", "description": "Youthful Beijing male voice (Beijing dialect)"},
+    "eric": {"speaker": "Eric", "language": "zh", "description": "Lively Chengdu male voice (Sichuan dialect)"},
+    "ono_anna": {"speaker": "Ono_Anna", "language": "ja", "description": "Playful Japanese female voice"},
+    "sohee": {"speaker": "Sohee", "language": "ko", "description": "Warm Korean female voice with rich emotion"},
+}
+DEFAULT_PRESET = "ryan"
+
+# ISO code -> Qwen3-TTS language name
+LANGUAGES = {
+    "en": "English",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "de": "German",
+    "fr": "French",
+    "ru": "Russian",
+    "pt": "Portuguese",
+    "es": "Spanish",
+    "it": "Italian",
 }
 
 # Pydantic models for request/response
-class TTSRequest(BaseModel):
+@dataclass
+class TTSRequest:
     job_id: str
     text: str  # max 500 chars for ~30s audio
     voice_reference_url: Optional[str] = None
     voice_preset: Optional[str] = None  # Key from VOICE_PRESETS
     language: str = "en"
     speed: float = 1.0
-    emotion: Optional[str] = None
+    emotion: Optional[str] = None  # free-text style instruction, e.g. "Very happy."
 
-class TTSResponse(BaseModel):
+@dataclass
+class TTSResponse:
     job_id: str
     status: str
+    processing_time_ms: int
     output_url: Optional[str] = None
     error: Optional[str] = None
-    processing_time_ms: int
 
 
 @app.function(
     image=image,
     volumes={"/models": tts_volume},
-    timeout=300,
+    timeout=1800,
 )
 def download_models():
-    """Download F5-TTS models to Modal Volume"""
-    import torch
-    from f5_tts.api import F5TTS
+    """Download Qwen3-TTS models to the Modal Volume (run once)"""
+    from huggingface_hub import snapshot_download
 
-    print("Downloading F5-TTS models...")
+    for model_id in (CUSTOM_VOICE_MODEL, CLONE_MODEL):
+        print(f"Downloading {model_id}...")
+        snapshot_download(model_id)
 
-    # Initialize F5-TTS (this will download models)
-    model = F5TTS(
-        model="F5TTS_v1_Base",
-        ckpt_file="",
-        vocab_file="",
-        device="cpu",  # Download on CPU, we'll use GPU for inference
-    )
-
-    print("F5-TTS models downloaded successfully!")
+    tts_volume.commit()
+    print("Qwen3-TTS models downloaded successfully!")
     return True
 
 
@@ -106,23 +121,16 @@ def download_models():
     ],
 )
 class TTSGenerator:
-    def __init__(self):
-        """Initialize TTS model on container startup"""
+    @modal.enter()
+    def setup(self):
+        """Initialize clients on container startup; models load lazily on first use"""
         import torch
-        from f5_tts.api import F5TTS
         import boto3
         from botocore.client import Config
 
-        print("Initializing F5-TTS model...")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        # Initialize F5-TTS
-        self.tts_model = F5TTS(
-            model="F5TTS_v1_Base",
-            ckpt_file="",
-            vocab_file="",
-            device=self.device,
-        )
+        self.custom_model = None
+        self.clone_model = None
 
         # Database connection URL
         self.database_url = os.environ["DATABASE_URL"]
@@ -138,7 +146,31 @@ class TTSGenerator:
         )
         self.r2_bucket = os.environ['R2_BUCKET_NAME']
 
-        print(f"F5-TTS initialized on {self.device}")
+        print(f"Qwen3-TTS service ready on {self.device}")
+
+    def _load(self, model_id: str):
+        import torch
+        from qwen_tts import Qwen3TTSModel
+
+        print(f"Loading {model_id}...")
+        model = Qwen3TTSModel.from_pretrained(
+            model_id,
+            device_map="cuda:0" if self.device == "cuda" else "cpu",
+            dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
+            attn_implementation="sdpa",
+        )
+        print(f"{model_id} loaded")
+        return model
+
+    def _get_custom_model(self):
+        if self.custom_model is None:
+            self.custom_model = self._load(CUSTOM_VOICE_MODEL)
+        return self.custom_model
+
+    def _get_clone_model(self):
+        if self.clone_model is None:
+            self.clone_model = self._load(CLONE_MODEL)
+        return self.clone_model
 
     def update_db_status(self, job_id: str, status: str, progress: int = 0, error: str = None, output_url: str = None, processing_time_ms: int = None):
         """Update generation status in database"""
@@ -191,9 +223,8 @@ class TTSGenerator:
             )
 
             # Generate public URL
-            public_url = f"https://pub-{os.environ.get('R2_PUBLIC_DOMAIN', 'example.com')}/{key}"
-
-            return public_url
+            public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            return f"{public_base}/{key}"
         except Exception as e:
             print(f"R2 upload error: {e}")
             raise
@@ -205,8 +236,9 @@ class TTSGenerator:
         voice_preset: Optional[str] = None,
         language: str = "en",
         speed: float = 1.0,
+        emotion: Optional[str] = None,
     ) -> bytes:
-        """Generate speech using F5-TTS"""
+        """Generate speech using Qwen3-TTS"""
         import soundfile as sf
         import numpy as np
         import requests
@@ -216,43 +248,55 @@ class TTSGenerator:
         if len(text) > 500:
             text = text[:500]
 
-        # Determine reference audio to use
-        # Priority: voice_preset > voice_reference_url > default
+        qwen_language = LANGUAGES.get(language, "Auto")
+
+        # Priority: voice_preset > voice_reference_url (clone) > default preset
         if voice_preset and voice_preset in VOICE_PRESETS:
-            # Use preset voice
             preset = VOICE_PRESETS[voice_preset]
-            ref_file = preset["file"]
-            ref_text = preset["text"]
             print(f"Using voice preset: {voice_preset}")
+            wavs, sample_rate = self._get_custom_model().generate_custom_voice(
+                text=text,
+                language=qwen_language,
+                speaker=preset["speaker"],
+                instruct=emotion or "",
+            )
         elif voice_reference_url:
-            # Download custom reference audio from URL
-            try:
-                print(f"Downloading custom voice reference from: {voice_reference_url}")
-                response = requests.get(voice_reference_url, timeout=10)
-                response.raise_for_status()
+            # Download custom reference audio from URL and clone it
+            print(f"Downloading custom voice reference from: {voice_reference_url}")
+            response = requests.get(voice_reference_url, timeout=15)
+            response.raise_for_status()
+            ref_file = f"/tmp/custom_ref_{os.urandom(8).hex()}.wav"
+            with open(ref_file, 'wb') as f:
+                f.write(response.content)
 
-                # Save to temp file
-                ref_file = f"/tmp/custom_ref_{os.urandom(8).hex()}.wav"
-                with open(ref_file, 'wb') as f:
-                    f.write(response.content)
-                ref_text = ""  # Auto-transcribe
-                print("Custom voice reference downloaded successfully")
-            except Exception as e:
-                print(f"Failed to download custom voice: {e}, falling back to default")
-                ref_file = "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav"
-                ref_text = ""
+            # No transcript is collected by the UI, so clone from the speaker
+            # embedding only (x_vector_only_mode needs no reference text).
+            clone = self._get_clone_model()
+            prompt_items = clone.create_voice_clone_prompt(
+                ref_audio=ref_file,
+                ref_text=None,
+                x_vector_only_mode=True,
+            )
+            wavs, sample_rate = clone.generate_voice_clone(
+                text=text,
+                language=qwen_language,
+                voice_clone_prompt=prompt_items,
+            )
         else:
-            # Use default reference audio from F5-TTS examples
-            ref_file = "/usr/local/lib/python3.11/site-packages/f5_tts/infer/examples/basic/basic_ref_en.wav"
-            ref_text = ""  # Empty string means auto-transcribe
+            preset = VOICE_PRESETS[DEFAULT_PRESET]
+            wavs, sample_rate = self._get_custom_model().generate_custom_voice(
+                text=text,
+                language=qwen_language,
+                speaker=preset["speaker"],
+                instruct=emotion or "",
+            )
 
-        # Generate with F5-TTS
-        audio_array, sample_rate, spectrogram = self.tts_model.infer(
-            ref_file=ref_file,
-            ref_text=ref_text,
-            gen_text=text,
-            speed=speed,
-        )
+        audio_array = np.asarray(wavs[0], dtype=np.float32)
+
+        # Qwen3-TTS has no native speed control - time-stretch the result
+        if abs(speed - 1.0) > 0.01:
+            import librosa
+            audio_array = librosa.effects.time_stretch(audio_array, rate=float(speed))
 
         # Convert to WAV bytes
         buffer = io.BytesIO()
@@ -262,9 +306,12 @@ class TTSGenerator:
         return buffer.read()
 
     @modal.fastapi_endpoint(method="POST")
-    def generate(self, request: TTSRequest) -> TTSResponse:
+    def generate(self, payload: dict) -> dict:
         """Main TTS generation endpoint"""
         start_time = time.time()
+        request = TTSRequest(**{
+            k: v for k, v in payload.items() if k in TTSRequest.__dataclass_fields__ and v is not None
+        })
 
         try:
             # Update status to processing (0%)
@@ -277,6 +324,7 @@ class TTSGenerator:
                 voice_preset=request.voice_preset,
                 language=request.language,
                 speed=request.speed,
+                emotion=request.emotion,
             )
 
             # Update progress (50%)
@@ -296,12 +344,12 @@ class TTSGenerator:
                 processing_time_ms=processing_time_ms
             )
 
-            return TTSResponse(
+            return asdict(TTSResponse(
                 job_id=request.job_id,
                 status="completed",
                 output_url=output_url,
                 processing_time_ms=processing_time_ms
-            )
+            ))
 
         except Exception as e:
             error_msg = str(e)
@@ -310,12 +358,12 @@ class TTSGenerator:
             # Update status to failed
             self.update_db_status(request.job_id, "failed", error=error_msg)
 
-            return TTSResponse(
+            return asdict(TTSResponse(
                 job_id=request.job_id,
                 status="failed",
                 error=error_msg,
                 processing_time_ms=int((time.time() - start_time) * 1000)
-            )
+            ))
 
 
 @app.function()
@@ -343,7 +391,7 @@ def main():
     generator = TTSGenerator()
     test_request = TTSRequest(
         job_id="test-001",
-        text="Hello, this is a test of the F5-TTS text to speech system.",
+        text="Hello, this is a test of the Qwen3-TTS text to speech system.",
         language="en",
         speed=1.0,
     )

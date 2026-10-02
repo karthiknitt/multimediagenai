@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 export interface UserPreferences {
   theme: "light" | "dark" | "system";
-  defaultModel: "flux2-dev" | "flux2-schnell";
+  defaultModel: "z-image-turbo";
   autoSavePresets: boolean;
   showAdvancedOptions: boolean;
   emailNotifications: boolean;
@@ -40,7 +40,7 @@ interface UserStore {
 
 const defaultPreferences: UserPreferences = {
   theme: "system",
-  defaultModel: "flux2-dev",
+  defaultModel: "z-image-turbo",
   autoSavePresets: true,
   showAdvancedOptions: false,
   emailNotifications: true,
@@ -78,6 +78,14 @@ export const useUserStore = create<UserStore>()(
     }),
     {
       name: "user-storage",
+      version: 2,
+      migrate: (persisted) => {
+        const state = persisted as UserStore;
+        return {
+          ...state,
+          preferences: { ...state.preferences, defaultModel: "z-image-turbo" as const },
+        };
+      },
       partialize: (state) => ({
         preferences: state.preferences,
         sidebarOpen: state.sidebarOpen,

@@ -9,9 +9,9 @@ import { eq } from "drizzle-orm";
 // Schema for image generation requests
 const generateRequestSchema = z.object({
   prompt: z.string().min(3).max(2000),
-  model: z.enum(["flux1-dev", "flux2-dev", "flux2-schnell"]).default("flux2-dev"),
-  steps: z.number().min(1).max(100).default(28),
-  cfgScale: z.number().min(1).max(20).default(4.0),
+  model: z.enum(["z-image-turbo"]).default("z-image-turbo"),
+  steps: z.number().min(1).max(12).default(9),
+  cfgScale: z.number().min(0).max(20).default(0),
   width: z.number().min(256).max(2048).default(1024),
   height: z.number().min(256).max(2048).default(1024),
   seed: z.number().optional(),
@@ -66,17 +66,14 @@ export async function POST(request: NextRequest) {
 
     const jobId = generation.id;
 
-    // Determine which Modal endpoint to use based on model
-    let modalApiUrl: string | undefined;
-    if (data.model === "flux1-dev") {
-      modalApiUrl = process.env.FLUX1_API_URL;
-    } else if (data.model === "flux2-dev" || data.model === "flux2-schnell") {
-      modalApiUrl = process.env.FLUX2_API_URL;
-    }
+    // Modal endpoint for image generation (Z-Image-Turbo)
+    // (FLUX1_API_URL is the legacy name for the same image-generation app; kept as a fallback)
+    const modalApiUrl: string | undefined =
+      process.env.IMAGE_GEN_API_URL ?? process.env.FLUX1_API_URL;
 
     if (!modalApiUrl) {
       return NextResponse.json(
-        { error: "Configuration error", message: `Modal API not configured for model: ${data.model}` },
+        { error: "Configuration error", message: `IMAGE_GEN_API_URL is not configured (model: ${data.model})` },
         { status: 500 }
       );
     }

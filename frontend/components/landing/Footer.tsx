@@ -69,7 +69,7 @@ export function Footer() {
               <span className="text-2xl font-bold gradient-text">AI Video Gen</span>
             </Link>
             <p className="text-foreground/60 leading-relaxed mb-8 max-w-sm">
-              Professional AI generation for images, videos, and audio. Powered by FLUX.2, Mochi, CogVideoX, and MusicGen.
+              Professional AI generation for images, videos, and audio. Powered by Z-Image, Wan2.2, ACE-Step, and Qwen3-TTS.
             </p>
 
             {/* Newsletter */}

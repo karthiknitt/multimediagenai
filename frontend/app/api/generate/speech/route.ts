@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       id: jobId,
       userId: session.user.id,
       type: "speech",
-      model: "f5-tts",
+      model: "qwen3-tts",
       prompt: text,
       parameters: {
         language,

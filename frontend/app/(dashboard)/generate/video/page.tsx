@@ -54,16 +54,16 @@ export default function VideoGenerationPage() {
   });
 
   const prompt = watch("prompt") ?? "";
-  const numFrames = watch("numFrames") ?? 64;
-  const cfgScale = watch("cfgScale") ?? 7.5;
+  const numFrames = watch("numFrames") ?? 81;
+  const cfgScale = watch("cfgScale") ?? 4.0;
   const seed = watch("seed");
   const sourceImageUrl = watch("sourceImageUrl");
 
   // Update parameters when variant changes
   useEffect(() => {
     const variantDefaults = {
-      "text2video": { numFrames: 64, cfgScale: 7.5 },
-      "img2video": { numFrames: 49, cfgScale: 6.0 },
+      "text2video": { numFrames: 81, cfgScale: 4.0 },
+      "img2video": { numFrames: 81, cfgScale: 3.5 },
     };
 
     const defaults = variantDefaults[variant];
@@ -108,8 +108,8 @@ export default function VideoGenerationPage() {
       const params: VideoParams = {
         prompt: data.prompt,
         variant: data.variant,
-        numFrames: data.numFrames ?? 64,
-        cfgScale: data.cfgScale ?? 7.5,
+        numFrames: data.numFrames ?? 81,
+        cfgScale: data.cfgScale ?? 4.0,
         seed: data.seed,
         sourceImageUrl: data.sourceImageUrl,
       };
@@ -207,8 +207,8 @@ export default function VideoGenerationPage() {
         </Tabs>
         <p className="mt-2 text-xs text-foreground/60">
           {variant === "text2video"
-            ? "Generate video from text description using Mochi"
-            : "Animate an image into video using CogVideoX"}
+            ? "Generate video from text description using Wan2.2"
+            : "Animate an image into video using Wan2.2"}
         </p>
       </div>
 
@@ -222,18 +222,16 @@ export default function VideoGenerationPage() {
             <span className="text-sm text-foreground/60 mono">{numFrames}</span>
           </div>
           <Slider
-            value={[numFrames]}
-            onValueChange={(value) => setValue("numFrames", value[0])}
-            min={variant === "text2video" ? 16 : 13}
-            max={variant === "text2video" ? 162 : 49}
-            step={variant === "text2video" ? 16 : 12}
+            value={numFrames}
+            onValueChange={(value) => setValue("numFrames", value)}
+            min={33}
+            max={121}
+            step={8}
             disabled={isGenerating}
             className="w-full"
           />
           <p className="text-xs text-foreground/50">
-            {variant === "text2video"
-              ? `~${(numFrames / 30).toFixed(1)}s at 30fps (longer = slower generation)`
-              : `~${(numFrames / 8).toFixed(1)}s at 8fps`}
+            {`~${(numFrames / 16).toFixed(1)}s at 16fps (longer = slower generation)`}
           </p>
         </div>
 
@@ -244,8 +242,8 @@ export default function VideoGenerationPage() {
             <span className="text-sm text-foreground/60 mono">{cfgScale.toFixed(1)}</span>
           </div>
           <Slider
-            value={[cfgScale]}
-            onValueChange={(value) => setValue("cfgScale", value[0])}
+            value={cfgScale}
+            onValueChange={(value) => setValue("cfgScale", value)}
             min={1}
             max={20}
             step={0.5}
@@ -404,7 +402,7 @@ export default function VideoGenerationPage() {
               {!isGenerating && (
                 <p className="text-center text-xs text-foreground/50 mono">
                   Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Enter</kbd> to generate
-                  {variant === "text2video" ? " • ~3-5 min generation time" : " • ~2-3 min generation time"}
+                   • ~5-8 min generation time
                 </p>
               )}
             </div>
