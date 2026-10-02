@@ -1,26 +1,19 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Clock, History, Mic, Music, Sparkles, Volume2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { type SubmitHandler, useForm } from "react-hook-form";
+import type { z } from "zod";
+import { AudioPreview } from "@/components/generation/AudioPreview";
+import { GenerationLayout } from "@/components/generation/GenerationLayout";
+import { GenerationProgress } from "@/components/generation/GenerationProgress";
+import { PromptInput } from "@/components/generation/PromptInput";
+import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GenerationLayout } from "@/components/generation/GenerationLayout";
-import { PromptInput } from "@/components/generation/PromptInput";
-import { GenerationProgress } from "@/components/generation/GenerationProgress";
-import { AudioPreview } from "@/components/generation/AudioPreview";
-import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
-import { audioGenerationSchema } from "@/lib/validation";
-import { useGenerationStore, type AudioParams } from "@/store/generation-store";
-import { useGenerateAudio, useCancelGeneration } from "@/hooks/useGeneration";
-import { useGenerationStream } from "@/hooks/useGenerationStream";
-import { Sparkles, History, Clock, Music, Mic, Volume2 } from "lucide-react";
-import { formatDistanceToNow } from "@/lib/date-utils";
-import { z } from "zod";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,6 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCancelGeneration, useGenerateAudio } from "@/hooks/useGeneration";
+import { useGenerationStream } from "@/hooks/useGenerationStream";
+import { formatDistanceToNow } from "@/lib/date-utils";
+import { audioGenerationSchema } from "@/lib/validation";
+import { type AudioParams, useGenerationStore } from "@/store/generation-store";
 
 // Define form data type
 type FormData = z.input<typeof audioGenerationSchema>;
@@ -51,8 +51,7 @@ export default function AudioGenerationPage() {
   const [completedJobId, setCompletedJobId] = useState<string | null>(null);
   const [variant, setVariant] = useState<"music" | "tts">("music");
 
-  const { audioParams, setAudioParams, history, addJob, updateJob } =
-    useGenerationStore();
+  const { audioParams, setAudioParams, history, addJob, updateJob } = useGenerationStore();
 
   const generateMutation = useGenerateAudio();
   const cancelMutation = useCancelGeneration();
@@ -107,10 +106,16 @@ export default function AudioGenerationPage() {
   });
 
   const currentProgress = lastEvent?.progress ?? 0;
-  const currentStatus = lastEvent?.type === "failed" ? "failed" :
-                        lastEvent?.type === "completed" ? "completed" :
-                        lastEvent?.type === "progress" && lastEvent.progress && lastEvent.progress > 0 ? "processing" :
-                        activeJobId ? "pending" : "pending";
+  const currentStatus =
+    lastEvent?.type === "failed"
+      ? "failed"
+      : lastEvent?.type === "completed"
+        ? "completed"
+        : lastEvent?.type === "progress" && lastEvent.progress && lastEvent.progress > 0
+          ? "processing"
+          : activeJobId
+            ? "pending"
+            : "pending";
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
@@ -173,7 +178,7 @@ export default function AudioGenerationPage() {
     handleSubmit(onSubmit)();
   }, [handleSubmit, onSubmit]);
 
-  const handleHistoryItemClick = (item: typeof history[0]) => {
+  const handleHistoryItemClick = (item: (typeof history)[0]) => {
     if (variant === "music") {
       setValue("prompt", item.prompt);
     } else {
@@ -191,7 +196,7 @@ export default function AudioGenerationPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl/Cmd + Enter to submit form
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         const hasContent = variant === "music" ? prompt.trim() : text.trim();
         if (!isGenerating && hasContent) {
@@ -199,23 +204,31 @@ export default function AudioGenerationPage() {
         }
       }
       // Escape to cancel generation
-      if (e.key === 'Escape' && isGenerating) {
+      if (e.key === "Escape" && isGenerating) {
         e.preventDefault();
         handleCancel();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isGenerating, prompt, text, variant, handleSubmit, onSubmit, handleCancel]);
 
   // Sidebar with parameters
   const sidebar = (
     <div className="space-y-6">
-      <div className="card-premium p-6" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 1 }}>
-        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">Mode</h3>
+      <div
+        className="card-premium p-6"
+        style={{ pointerEvents: "auto", position: "relative", zIndex: 1 }}
+      >
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+          Mode
+        </h3>
         <Tabs value={variant} onValueChange={(v) => setVariant(v as "music" | "tts")}>
-          <TabsList className="grid w-full grid-cols-2 border-2 border-cyan-500/30" style={{ position: 'relative', zIndex: 10 }}>
+          <TabsList
+            className="grid w-full grid-cols-2 border-2 border-cyan-500/30"
+            style={{ position: "relative", zIndex: 10 }}
+          >
             <TabsTrigger value="music" className="flex items-center gap-2" type="button">
               <Music className="h-4 w-4" />
               Music
@@ -234,7 +247,9 @@ export default function AudioGenerationPage() {
       </div>
 
       <div className="card-premium p-6 space-y-6">
-        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">Parameters</h3>
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
+          Parameters
+        </h3>
 
         {variant === "music" ? (
           <>
@@ -322,9 +337,7 @@ export default function AudioGenerationPage() {
                 disabled={isGenerating}
                 className="w-full"
               />
-              <p className="text-xs text-foreground/50">
-                Playback speed (0.5x - 2.0x)
-              </p>
+              <p className="text-xs text-foreground/50">Playback speed (0.5x - 2.0x)</p>
             </div>
           </>
         )}
@@ -343,9 +356,7 @@ export default function AudioGenerationPage() {
       </div>
       <div className="p-4">
         {history.filter((h) => h.type === "audio").length === 0 ? (
-          <p className="text-center text-sm text-foreground/60 py-8">
-            No recent generations
-          </p>
+          <p className="text-center text-sm text-foreground/60 py-8">No recent generations</p>
         ) : (
           <div className="space-y-2">
             {history
@@ -357,7 +368,7 @@ export default function AudioGenerationPage() {
                   type="button"
                   onClick={() => handleHistoryItemClick(item)}
                   className="flex w-full items-start gap-3 rounded-lg glass hover-glow border border-foreground/10 p-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? '...' : ''}`}
+                  aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? "..." : ""}`}
                 >
                   {item.id ? (
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-cyan-500/10">
@@ -389,9 +400,7 @@ export default function AudioGenerationPage() {
         <h1 className="text-4xl sm:text-5xl font-bold mb-2">
           <span className="gradient-text">Audio Generation</span>
         </h1>
-        <p className="text-foreground/60 text-lg">
-          Create music or speech from text with AI
-        </p>
+        <p className="text-foreground/60 text-lg">Create music or speech from text with AI</p>
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} aria-label="Audio generation form">
@@ -405,9 +414,11 @@ export default function AudioGenerationPage() {
                 disabled={isGenerating}
                 maxLength={variant === "music" ? 2000 : 500}
                 autoFocus={true}
-                placeholder={variant === "music"
-                  ? "Upbeat electronic dance music with a catchy melody and driving beat..."
-                  : "Enter the text you want to convert to speech (max 500 characters)..."}
+                placeholder={
+                  variant === "music"
+                    ? "Upbeat electronic dance music with a catchy melody and driving beat..."
+                    : "Enter the text you want to convert to speech (max 500 characters)..."
+                }
               />
               {variant === "music" && errors.prompt && (
                 <p className="mt-2 text-sm text-red-400" role="alert">
@@ -427,18 +438,32 @@ export default function AudioGenerationPage() {
                 type="submit"
                 className="btn-premium w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 disabled={isGenerating || (variant === "music" ? !prompt.trim() : !text.trim())}
-                aria-label={isGenerating ? "Generating audio, please wait" : "Generate audio from prompt"}
+                aria-label={
+                  isGenerating ? "Generating audio, please wait" : "Generate audio from prompt"
+                }
                 aria-live="polite"
               >
                 <span className="flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5" />
-                  {isGenerating ? "Generating..." : `Generate ${variant === "music" ? "Music" : "Speech"}`}
+                  {isGenerating
+                    ? "Generating..."
+                    : `Generate ${variant === "music" ? "Music" : "Speech"}`}
                 </span>
               </button>
               {!isGenerating && (
                 <p className="text-center text-xs text-foreground/50 mono">
-                  Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Enter</kbd> to generate
-                  {variant === "music" ? " • ~15-30s generation time" : " • ~10-20s generation time"}
+                  Tip: Press{" "}
+                  <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">
+                    Ctrl
+                  </kbd>{" "}
+                  +{" "}
+                  <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">
+                    Enter
+                  </kbd>{" "}
+                  to generate
+                  {variant === "music"
+                    ? " • ~15-30s generation time"
+                    : " • ~10-20s generation time"}
                 </p>
               )}
             </div>
@@ -455,8 +480,10 @@ export default function AudioGenerationPage() {
                 />
                 {activeJobId && (
                   <div className="flex items-center justify-center gap-2 text-xs text-foreground/50 mono">
-                    <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                    <span>{isConnected ? 'Connected to server' : 'Connecting...'}</span>
+                    <div
+                      className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                    />
+                    <span>{isConnected ? "Connected to server" : "Connecting..."}</span>
                     {lastEvent && <span>• Last update: {lastEvent.type}</span>}
                   </div>
                 )}

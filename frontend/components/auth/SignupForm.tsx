@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, ArrowRight, Check, Loader2, Lock, Mail, Sparkles, User } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp } from "@/lib/auth-client";
-import { signupSchema, type SignupInput } from "@/lib/validation";
-import { Loader2, Mail, Lock, User, AlertCircle, Check, Sparkles, ArrowRight } from "lucide-react";
+import { type SignupInput, signupSchema } from "@/lib/validation";
 
 const passwordRequirements = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -85,9 +85,7 @@ export function SignupForm() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-            <p className="text-foreground/60">
-              Start creating with AI in seconds
-            </p>
+            <p className="text-foreground/60">Start creating with AI in seconds</p>
           </div>
 
           {/* Form */}
@@ -118,9 +116,7 @@ export function SignupForm() {
                   {...register("name")}
                 />
               </div>
-              {errors.name && (
-                <p className="text-sm text-red-400">{errors.name.message}</p>
-              )}
+              {errors.name && <p className="text-sm text-red-400">{errors.name.message}</p>}
             </div>
 
             {/* Email Field */}
@@ -141,9 +137,7 @@ export function SignupForm() {
                   {...register("email")}
                 />
               </div>
-              {errors.email && (
-                <p className="text-sm text-red-400">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-sm text-red-400">{errors.email.message}</p>}
             </div>
 
             {/* Password Field */}
@@ -173,18 +167,18 @@ export function SignupForm() {
                       req.test(password) ? "text-cyan-400" : "text-foreground/40"
                     }`}
                   >
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                      req.test(password) ? "bg-cyan-500/20" : "bg-foreground/5"
-                    }`}>
+                    <div
+                      className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                        req.test(password) ? "bg-cyan-500/20" : "bg-foreground/5"
+                      }`}
+                    >
                       <Check className="h-2.5 w-2.5" />
                     </div>
                     {req.label}
                   </div>
                 ))}
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-400">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-sm text-red-400">{errors.password.message}</p>}
             </div>
 
             {/* Confirm Password Field */}
@@ -249,9 +243,7 @@ export function SignupForm() {
                 <div className="w-full border-t border-foreground/10" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-4 text-foreground/60">
-                  Already have an account?
-                </span>
+                <span className="bg-card px-4 text-foreground/60">Already have an account?</span>
               </div>
             </div>
 

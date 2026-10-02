@@ -1,9 +1,9 @@
 "use client";
 
+import { Download, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, Download, Volume2, VolumeX } from "lucide-react";
 
 interface WaveformDisplayProps {
   audioUrl: string;
@@ -125,27 +125,13 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
       {/* Controls */}
       <div className="flex items-center gap-2">
         {/* Play/Pause */}
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={togglePlay}
-          className="h-10 w-10"
-        >
-          {isPlaying ? (
-            <Pause className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4 ml-0.5" />
-          )}
+        <Button size="icon" variant="outline" onClick={togglePlay} className="h-10 w-10">
+          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
         </Button>
 
         {/* Volume Control */}
         <div className="flex items-center gap-2 flex-1">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={toggleMute}
-            className="h-8 w-8"
-          >
+          <Button size="icon" variant="ghost" onClick={toggleMute} className="h-8 w-8">
             {isMuted || volume === 0 ? (
               <VolumeX className="h-4 w-4" />
             ) : (
@@ -162,12 +148,7 @@ export function WaveformDisplay({ audioUrl, title }: WaveformDisplayProps) {
         </div>
 
         {/* Download Button */}
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={handleDownload}
-          className="h-10 w-10"
-        >
+        <Button size="icon" variant="outline" onClick={handleDownload} className="h-10 w-10">
           <Download className="h-4 w-4" />
         </Button>
       </div>

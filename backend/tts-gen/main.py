@@ -90,6 +90,46 @@ class TTSResponse:
     error: Optional[str] = None
 
 
+
+MAX_FETCH_BYTES = 10 * 1024 * 1024
+
+
+def assert_r2_url(url: str) -> None:
+    """Only fetch user-supplied URLs from our own R2 public origin (blocks SSRF)."""
+    import os
+    from urllib.parse import urlsplit
+
+    base = os.environ.get("R2_PUBLIC_URL") or (
+        f"https://pub-{os.environ.get('R2_ACCOUNT_ID', '')}.r2.dev"
+    )
+
+    def origin(u: str):
+        p = urlsplit(u)
+        return (p.scheme, p.hostname, p.port or 443), p
+
+    try:
+        got, parts = origin(url)
+        want, _ = origin(base)
+    except ValueError as e:
+        raise ValueError(f"Invalid URL: {e}") from e
+    if got != want or parts.scheme != "https" or parts.username or parts.password:
+        raise ValueError("URL must point to this project's R2 storage")
+
+
+def fetch_r2_bytes(url: str, timeout: int = 30) -> bytes:
+    """Download a file from R2 with origin check, no redirects and a size cap."""
+    import requests
+
+    assert_r2_url(url)
+    with requests.get(url, timeout=timeout, stream=True, allow_redirects=False) as r:
+        r.raise_for_status()
+        data = bytearray()
+        for chunk in r.iter_content(1 << 20):
+            data.extend(chunk)
+            if len(data) > MAX_FETCH_BYTES:
+                raise ValueError("Downloaded file exceeds size limit")
+        return bytes(data)
+
 @app.function(
     image=image,
     volumes={"/models": tts_volume},
@@ -241,7 +281,6 @@ class TTSGenerator:
         """Generate speech using Qwen3-TTS"""
         import soundfile as sf
         import numpy as np
-        import requests
 
         # Preprocess text
         text = text.strip()
@@ -263,11 +302,10 @@ class TTSGenerator:
         elif voice_reference_url:
             # Download custom reference audio from URL and clone it
             print(f"Downloading custom voice reference from: {voice_reference_url}")
-            response = requests.get(voice_reference_url, timeout=15)
-            response.raise_for_status()
+            ref_bytes = fetch_r2_bytes(voice_reference_url, timeout=15)
             ref_file = f"/tmp/custom_ref_{os.urandom(8).hex()}.wav"
             with open(ref_file, 'wb') as f:
-                f.write(response.content)
+                f.write(ref_bytes)
 
             # No transcript is collected by the UI, so clone from the speaker
             # embedding only (x_vector_only_mode needs no reference text).
@@ -305,7 +343,7 @@ class TTSGenerator:
 
         return buffer.read()
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate(self, payload: dict) -> dict:
         """Main TTS generation endpoint"""
         start_time = time.time()

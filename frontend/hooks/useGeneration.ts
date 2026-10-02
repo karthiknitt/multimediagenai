@@ -1,7 +1,11 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ImageGenerationInput, VideoGenerationInput, AudioGenerationInput } from "@/lib/validation";
+import type {
+  AudioGenerationInput,
+  ImageGenerationInput,
+  VideoGenerationInput,
+} from "@/lib/validation";
 
 // Types for API responses
 export interface GenerationResponse {
@@ -30,7 +34,7 @@ export interface PaginatedGenerations {
 async function fetchGenerations(
   page: number = 1,
   pageSize: number = 20,
-  type?: "image" | "video" | "audio" | "speech"
+  type?: "image" | "video" | "audio" | "speech",
 ): Promise<PaginatedGenerations> {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -114,7 +118,7 @@ async function deleteGeneration(id: string): Promise<void> {
 export function useGenerations(
   page: number = 1,
   pageSize: number = 20,
-  type?: "image" | "video" | "audio" | "speech"
+  type?: "image" | "video" | "audio" | "speech",
 ) {
   return useQuery({
     queryKey: ["generations", page, pageSize, type],

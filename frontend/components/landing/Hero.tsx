@@ -1,6 +1,6 @@
+import { Film, Play, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Play, Zap, Film } from "lucide-react";
 
 export function Hero() {
   return (
@@ -22,7 +22,9 @@ export function Hero() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
             </span>
-            <span className="text-foreground/90">Powered by Z-Image · Wan2.2 · ACE-Step · Qwen3-TTS</span>
+            <span className="text-foreground/90">
+              Powered by Z-Image · Wan2.2 · ACE-Step · Qwen3-TTS
+            </span>
           </div>
 
           {/* Main Headline with Dramatic Typography */}
@@ -37,11 +39,10 @@ export function Hero() {
 
           {/* Subheadline */}
           <p className="mx-auto mt-8 max-w-3xl text-xl sm:text-2xl text-foreground/80 leading-relaxed font-light animate-fade-in-up stagger-2">
-            Professional-grade{" "}
-            <span className="gradient-text font-semibold">images</span>,{" "}
+            Professional-grade <span className="gradient-text font-semibold">images</span>,{" "}
             <span className="gradient-text font-semibold">videos</span>, and{" "}
-            <span className="gradient-text font-semibold">audio</span>{" "}
-            generated in seconds. No experience needed.
+            <span className="gradient-text font-semibold">audio</span> generated in seconds. No
+            experience needed.
           </p>
 
           {/* Feature Pills */}
@@ -99,10 +100,7 @@ export function Hero() {
         </div>
 
         {/* Premium Demo Showcase */}
-        <div
-          id="showcase"
-          className="mx-auto mt-20 max-w-6xl"
-        >
+        <div id="showcase" className="mx-auto mt-20 max-w-6xl">
           <div className="card-premium hover-lift p-0 overflow-hidden">
             {/* Grid of sample outputs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0.5 bg-background/20">

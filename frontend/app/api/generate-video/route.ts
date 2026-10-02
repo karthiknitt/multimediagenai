@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { modalHeaders } from "@/lib/modal";
 
 // Schema for video generation requests
 const generateVideoRequestSchema = z.object({
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Please sign in to generate content" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
           message: "Invalid request parameters",
           details: validationResult.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (data.variant === "img2video" && !data.sourceImageUrl) {
       return NextResponse.json(
         { error: "Validation failed", message: "sourceImageUrl is required for img2video variant" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,16 +82,16 @@ export async function POST(request: NextRequest) {
 
     if (!endpoint) {
       return NextResponse.json(
-        { error: "Configuration error", message: `Video generation API not configured for ${data.variant}` },
-        { status: 500 }
+        {
+          error: "Configuration error",
+          message: `Video generation API not configured for ${data.variant}`,
+        },
+        { status: 500 },
       );
     }
 
     // Update status to processing
-    await db
-      .update(generations)
-      .set({ status: "processing" })
-      .where(eq(generations.id, jobId));
+    await db.update(generations).set({ status: "processing" }).where(eq(generations.id, jobId));
 
     const markFailed = async (message: string) => {
       await db
@@ -122,9 +123,7 @@ export async function POST(request: NextRequest) {
     // row via /api/generation/[jobId]/stream and shows the video once it is completed.
     fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: modalHeaders(),
       body: JSON.stringify(modalPayload),
     })
       .then(async (modalResponse) => {
@@ -143,7 +142,7 @@ export async function POST(request: NextRequest) {
       .catch(async (error: unknown) => {
         console.error("Modal video API call failed:", error);
         await markFailed(
-          `Modal API error: ${error instanceof Error ? error.message : String(error)}`
+          `Modal API error: ${error instanceof Error ? error.message : String(error)}`,
         );
       });
 
@@ -161,7 +160,7 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         message: "Failed to start video generation. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

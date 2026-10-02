@@ -1,26 +1,26 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Clock, Film, History, ImageIcon, Sparkles, Upload } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { type SubmitHandler, useForm } from "react-hook-form";
+import type { z } from "zod";
+import { GenerationLayout } from "@/components/generation/GenerationLayout";
+import { GenerationProgress } from "@/components/generation/GenerationProgress";
+import { PromptInput } from "@/components/generation/PromptInput";
+import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
+import { VideoPreview } from "@/components/generation/VideoPreview";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GenerationLayout } from "@/components/generation/GenerationLayout";
-import { PromptInput } from "@/components/generation/PromptInput";
-import { GenerationProgress } from "@/components/generation/GenerationProgress";
-import { VideoPreview } from "@/components/generation/VideoPreview";
-import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
+import { useCancelGeneration, useGenerateVideo } from "@/hooks/useGeneration";
+import { useGenerationStream } from "@/hooks/useGenerationStream";
+import { formatDistanceToNow } from "@/lib/date-utils";
 import { videoGenerationSchema } from "@/lib/validation";
 import { useGenerationStore, type VideoParams } from "@/store/generation-store";
-import { useGenerateVideo, useCancelGeneration } from "@/hooks/useGeneration";
-import { useGenerationStream } from "@/hooks/useGenerationStream";
-import { Sparkles, History, Clock, Film, ImageIcon, Upload } from "lucide-react";
-import { formatDistanceToNow } from "@/lib/date-utils";
-import { z } from "zod";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 
 // Define form data type that uses the schema with required fields
 type FormData = z.input<typeof videoGenerationSchema>;
@@ -30,8 +30,7 @@ export default function VideoGenerationPage() {
   const [completedJobId, setCompletedJobId] = useState<string | null>(null);
   const [variant, setVariant] = useState<"text2video" | "img2video">("text2video");
 
-  const { videoParams, setVideoParams, history, addJob, updateJob } =
-    useGenerationStore();
+  const { videoParams, setVideoParams, history, addJob, updateJob } = useGenerationStore();
 
   const generateMutation = useGenerateVideo();
   const cancelMutation = useCancelGeneration();
@@ -62,8 +61,8 @@ export default function VideoGenerationPage() {
   // Update parameters when variant changes
   useEffect(() => {
     const variantDefaults = {
-      "text2video": { numFrames: 81, cfgScale: 4.0 },
-      "img2video": { numFrames: 81, cfgScale: 3.5 },
+      text2video: { numFrames: 81, cfgScale: 4.0 },
+      img2video: { numFrames: 81, cfgScale: 3.5 },
     };
 
     const defaults = variantDefaults[variant];
@@ -91,10 +90,16 @@ export default function VideoGenerationPage() {
   });
 
   const currentProgress = lastEvent?.progress ?? 0;
-  const currentStatus = lastEvent?.type === "failed" ? "failed" :
-                        lastEvent?.type === "completed" ? "completed" :
-                        lastEvent?.type === "progress" && lastEvent.progress && lastEvent.progress > 0 ? "processing" :
-                        activeJobId ? "pending" : "pending";
+  const currentStatus =
+    lastEvent?.type === "failed"
+      ? "failed"
+      : lastEvent?.type === "completed"
+        ? "completed"
+        : lastEvent?.type === "progress" && lastEvent.progress && lastEvent.progress > 0
+          ? "processing"
+          : activeJobId
+            ? "pending"
+            : "pending";
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
@@ -157,7 +162,7 @@ export default function VideoGenerationPage() {
     handleSubmit(onSubmit)();
   }, [handleSubmit, onSubmit]);
 
-  const handleHistoryItemClick = (item: typeof history[0]) => {
+  const handleHistoryItemClick = (item: (typeof history)[0]) => {
     setValue("prompt", item.prompt);
     // Set the completed job ID to display the historical video
     if (item.id) {
@@ -171,30 +176,38 @@ export default function VideoGenerationPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl/Cmd + Enter to submit form
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         if (!isGenerating && prompt.trim()) {
           handleSubmit(onSubmit)();
         }
       }
       // Escape to cancel generation
-      if (e.key === 'Escape' && isGenerating) {
+      if (e.key === "Escape" && isGenerating) {
         e.preventDefault();
         handleCancel();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isGenerating, prompt, handleSubmit, onSubmit, handleCancel]);
 
   // Sidebar with parameters
   const sidebar = (
     <div className="space-y-6">
-      <div className="card-premium p-6" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 1 }}>
-        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">Mode</h3>
+      <div
+        className="card-premium p-6"
+        style={{ pointerEvents: "auto", position: "relative", zIndex: 1 }}
+      >
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+          Mode
+        </h3>
         <Tabs value={variant} onValueChange={(v) => setVariant(v as "text2video" | "img2video")}>
-          <TabsList className="grid w-full grid-cols-2 border-2 border-cyan-500/30" style={{ position: 'relative', zIndex: 10 }}>
+          <TabsList
+            className="grid w-full grid-cols-2 border-2 border-cyan-500/30"
+            style={{ position: "relative", zIndex: 10 }}
+          >
             <TabsTrigger value="text2video" className="flex items-center gap-2" type="button">
               <Film className="h-4 w-4" />
               Text to Video
@@ -213,7 +226,9 @@ export default function VideoGenerationPage() {
       </div>
 
       <div className="card-premium p-6 space-y-6">
-        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">Parameters</h3>
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
+          Parameters
+        </h3>
 
         {/* Num Frames */}
         <div className="space-y-3">
@@ -250,9 +265,7 @@ export default function VideoGenerationPage() {
             disabled={isGenerating}
             className="w-full"
           />
-          <p className="text-xs text-foreground/50">
-            Higher = more prompt adherence
-          </p>
+          <p className="text-xs text-foreground/50">Higher = more prompt adherence</p>
         </div>
 
         {/* Seed */}
@@ -261,14 +274,14 @@ export default function VideoGenerationPage() {
           <Input
             type="number"
             value={seed ?? ""}
-            onChange={(e) => setValue("seed", e.target.value ? parseInt(e.target.value) : undefined)}
+            onChange={(e) =>
+              setValue("seed", e.target.value ? parseInt(e.target.value) : undefined)
+            }
             placeholder="Random"
             disabled={isGenerating}
             className="font-mono"
           />
-          <p className="text-xs text-foreground/50">
-            Use same seed for reproducible results
-          </p>
+          <p className="text-xs text-foreground/50">Use same seed for reproducible results</p>
         </div>
       </div>
     </div>
@@ -285,9 +298,7 @@ export default function VideoGenerationPage() {
       </div>
       <div className="p-4">
         {history.filter((h) => h.type === "video").length === 0 ? (
-          <p className="text-center text-sm text-foreground/60 py-8">
-            No recent generations
-          </p>
+          <p className="text-center text-sm text-foreground/60 py-8">No recent generations</p>
         ) : (
           <div className="space-y-2">
             {history
@@ -299,7 +310,7 @@ export default function VideoGenerationPage() {
                   type="button"
                   onClick={() => handleHistoryItemClick(item)}
                   className="flex w-full items-start gap-3 rounded-lg glass hover-glow border border-foreground/10 p-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? '...' : ''}`}
+                  aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? "..." : ""}`}
                 >
                   {item.id ? (
                     <SecureThumbnail
@@ -349,9 +360,11 @@ export default function VideoGenerationPage() {
                 disabled={isGenerating}
                 maxLength={2000}
                 autoFocus={true}
-                placeholder={variant === "text2video"
-                  ? "A serene mountain landscape with flowing waterfalls at sunset..."
-                  : "Describe how you want the image to be animated..."}
+                placeholder={
+                  variant === "text2video"
+                    ? "A serene mountain landscape with flowing waterfalls at sunset..."
+                    : "Describe how you want the image to be animated..."
+                }
               />
               {errors.prompt && (
                 <p className="mt-2 text-sm text-red-400" role="alert">
@@ -390,19 +403,32 @@ export default function VideoGenerationPage() {
               <button
                 type="submit"
                 className="btn-premium w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                disabled={isGenerating || !prompt.trim() || (variant === "img2video" && !sourceImageUrl)}
-                aria-label={isGenerating ? "Generating video, please wait" : "Generate video from prompt"}
+                disabled={
+                  isGenerating || !prompt.trim() || (variant === "img2video" && !sourceImageUrl)
+                }
+                aria-label={
+                  isGenerating ? "Generating video, please wait" : "Generate video from prompt"
+                }
                 aria-live="polite"
               >
                 <span className="flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5" />
-                  {isGenerating ? "Generating..." : `Generate ${variant === "text2video" ? "Video" : "Animation"}`}
+                  {isGenerating
+                    ? "Generating..."
+                    : `Generate ${variant === "text2video" ? "Video" : "Animation"}`}
                 </span>
               </button>
               {!isGenerating && (
                 <p className="text-center text-xs text-foreground/50 mono">
-                  Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Enter</kbd> to generate
-                   • ~5-8 min generation time
+                  Tip: Press{" "}
+                  <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">
+                    Ctrl
+                  </kbd>{" "}
+                  +{" "}
+                  <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">
+                    Enter
+                  </kbd>{" "}
+                  to generate • ~5-8 min generation time
                 </p>
               )}
             </div>
@@ -419,8 +445,10 @@ export default function VideoGenerationPage() {
                 />
                 {activeJobId && (
                   <div className="flex items-center justify-center gap-2 text-xs text-foreground/50 mono">
-                    <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                    <span>{isConnected ? 'Connected to server' : 'Connecting...'}</span>
+                    <div
+                      className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                    />
+                    <span>{isConnected ? "Connected to server" : "Connecting..."}</span>
                     {lastEvent && <span>• Last update: {lastEvent.type}</span>}
                   </div>
                 )}

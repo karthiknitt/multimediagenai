@@ -1,9 +1,11 @@
 "use client";
 
+import { ChevronDown, ChevronUp, Dice6, Lock, Unlock } from "lucide-react";
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,9 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Dice6, Lock, Unlock } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
 interface ParameterPanelProps {
@@ -138,11 +138,7 @@ export function ParameterPanel({
           onClick={() => setShowAdvanced(!showAdvanced)}
         >
           Advanced Options
-          {showAdvanced ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
+          {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
 
         {/* Advanced options */}
@@ -162,11 +158,7 @@ export function ParameterPanel({
                     disabled={disabled || !seed}
                     title={seedLocked ? "Unlock seed" : "Lock seed"}
                   >
-                    {seedLocked ? (
-                      <Lock className="h-4 w-4" />
-                    ) : (
-                      <Unlock className="h-4 w-4" />
-                    )}
+                    {seedLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                   </Button>
                   <Button
                     type="button"

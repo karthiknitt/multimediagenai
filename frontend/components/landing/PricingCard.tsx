@@ -1,6 +1,6 @@
+import { Check, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Check, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PricingCardProps {
@@ -32,7 +32,7 @@ export function PricingCard({
     <div
       className={cn(
         "card-premium hover-lift h-full flex flex-col relative",
-        popular && "ring-2 ring-cyan-400/50 shadow-[0_0_30px_rgba(34,211,238,0.3)]"
+        popular && "ring-2 ring-cyan-400/50 shadow-[0_0_30px_rgba(34,211,238,0.3)]",
       )}
     >
       {/* Popular Badge */}
@@ -45,7 +45,9 @@ export function PricingCard({
       )}
 
       {/* Gradient Background on Hover */}
-      <div className={`absolute inset-0 bg-linear-to-br ${gradient} opacity-0 hover:opacity-50 transition-opacity duration-500 rounded-xl pointer-events-none`} />
+      <div
+        className={`absolute inset-0 bg-linear-to-br ${gradient} opacity-0 hover:opacity-50 transition-opacity duration-500 rounded-xl pointer-events-none`}
+      />
 
       {/* Content */}
       <div className="relative flex flex-col h-full">
@@ -65,7 +67,9 @@ export function PricingCard({
           <div className="flex items-end justify-center gap-1">
             <span className="text-5xl font-bold gradient-text mono">{price}</span>
             {price !== "Custom" && period && (
-              <span className="text-foreground/50 mb-2 text-sm mono">/{period.replace("per ", "")}</span>
+              <span className="text-foreground/50 mb-2 text-sm mono">
+                /{period.replace("per ", "")}
+              </span>
             )}
           </div>
           {period && price === "Custom" && (
@@ -88,10 +92,15 @@ export function PricingCard({
         </ul>
 
         {/* CTA Button */}
-        <Link href={ctaLink} className={cn(
-          "block w-full text-center",
-          popular ? "btn-premium" : "glass hover-glow border border-foreground/20 rounded-xl py-3 px-6 font-semibold transition-all"
-        )}>
+        <Link
+          href={ctaLink}
+          className={cn(
+            "block w-full text-center",
+            popular
+              ? "btn-premium"
+              : "glass hover-glow border border-foreground/20 rounded-xl py-3 px-6 font-semibold transition-all",
+          )}
+        >
           <span>{cta}</span>
         </Link>
       </div>

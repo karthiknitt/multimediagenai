@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { HeadObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { headers } from "next/headers";
-import { db } from "@/lib/db";
+import { NextResponse } from "next/server";
 import { generations } from "@/db/schema";
-import { eq, and, sql, gte } from "drizzle-orm";
-import { S3Client, ListObjectsV2Command, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 // Initialize R2 client
 const r2Client = new S3Client({
@@ -19,8 +19,8 @@ const r2Client = new S3Client({
 // Helper to get file size from R2
 async function getFileSizeFromR2(publicUrl: string): Promise<number> {
   try {
-    const urlParts = publicUrl.split('/');
-    const objectKey = urlParts.slice(-3).join('/');
+    const urlParts = publicUrl.split("/");
+    const objectKey = urlParts.slice(-3).join("/");
 
     const command = new HeadObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
@@ -42,12 +42,7 @@ async function calculateUserStorage(userId: string): Promise<number> {
     const userGenerations = await db
       .select({ outputUrl: generations.outputUrl })
       .from(generations)
-      .where(
-        and(
-          eq(generations.userId, userId),
-          eq(generations.status, "completed")
-        )
-      );
+      .where(and(eq(generations.userId, userId), eq(generations.status, "completed")));
 
     // Calculate total size by fetching each file's size from R2
     let totalSize = 0;
@@ -73,10 +68,7 @@ export async function GET() {
     });
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -98,31 +90,21 @@ export async function GET() {
         count: sql<number>`count(*)`,
       })
       .from(generations)
-      .where(
-        and(
-          eq(generations.userId, userId),
-          gte(generations.createdAt, monthStart)
-        )
-      )
+      .where(and(eq(generations.userId, userId), gte(generations.createdAt, monthStart)))
       .groupBy(generations.type);
 
     // Parse monthly stats
-    const imagesGenerated = monthlyStats.find(s => s.type === "image")?.count || 0;
-    const videosGenerated = monthlyStats.find(s => s.type === "video")?.count || 0;
-    const audioGenerated = monthlyStats.find(s => s.type === "audio")?.count || 0;
-    const speechGenerated = monthlyStats.find(s => s.type === "speech")?.count || 0;
+    const imagesGenerated = monthlyStats.find((s) => s.type === "image")?.count || 0;
+    const videosGenerated = monthlyStats.find((s) => s.type === "video")?.count || 0;
+    const audioGenerated = monthlyStats.find((s) => s.type === "audio")?.count || 0;
+    const speechGenerated = monthlyStats.find((s) => s.type === "speech")?.count || 0;
 
     // Get today's generation count (for rate limiting)
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const [{ todayCount }] = await db
       .select({ todayCount: sql<number>`count(*)` })
       .from(generations)
-      .where(
-        and(
-          eq(generations.userId, userId),
-          gte(generations.createdAt, todayStart)
-        )
-      );
+      .where(and(eq(generations.userId, userId), gte(generations.createdAt, todayStart)));
 
     // Calculate storage used (in bytes)
     const storageUsedBytes = await calculateUserStorage(userId);
@@ -142,9 +124,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Dashboard stats API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch dashboard stats" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch dashboard stats" }, { status: 500 });
   }
 }

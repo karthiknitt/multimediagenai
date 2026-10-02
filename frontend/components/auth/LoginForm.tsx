@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, ArrowRight, Loader2, Lock, Mail, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth-client";
-import { loginSchema, type LoginInput } from "@/lib/validation";
-import { Loader2, Mail, Lock, AlertCircle, Sparkles, ArrowRight } from "lucide-react";
+import { type LoginInput, loginSchema } from "@/lib/validation";
 
 export function LoginForm() {
   const router = useRouter();
@@ -73,9 +73,7 @@ export function LoginForm() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-            <p className="text-foreground/60">
-              Sign in to continue creating with AI
-            </p>
+            <p className="text-foreground/60">Sign in to continue creating with AI</p>
           </div>
 
           {/* Form */}
@@ -175,9 +173,7 @@ export function LoginForm() {
                 <div className="w-full border-t border-foreground/10" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-card px-4 text-foreground/60">
-                  New to AI Video Gen?
-                </span>
+                <span className="bg-card px-4 text-foreground/60">New to AI Video Gen?</span>
               </div>
             </div>
 

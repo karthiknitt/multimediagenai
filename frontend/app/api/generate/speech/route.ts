@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
-import { v4 as uuidv4 } from "uuid";
+import { modalHeaders } from "@/lib/modal";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,10 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (text.length > 500) {
-      return NextResponse.json(
-        { error: "Text must be 500 characters or less" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Text must be 500 characters or less" }, { status: 400 });
     }
 
     // Generate unique job ID
@@ -59,9 +57,7 @@ export async function POST(request: NextRequest) {
     // Trigger generation (fire and forget)
     fetch(ttsApiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: modalHeaders(),
       body: JSON.stringify({
         job_id: jobId,
         text,
@@ -81,9 +77,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Speech generation error:", error);
-    return NextResponse.json(
-      { error: "Failed to start speech generation" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to start speech generation" }, { status: 500 });
   }
 }

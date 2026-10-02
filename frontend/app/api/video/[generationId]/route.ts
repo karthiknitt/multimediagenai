@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 /**
  * Secure Video Access API Route
@@ -26,7 +26,7 @@ const r2Client = new S3Client({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ generationId: string }> }
+  { params }: { params: Promise<{ generationId: string }> },
 ) {
   try {
     const { generationId } = await params;
@@ -37,10 +37,7 @@ export async function GET(
     });
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get generation from database
@@ -51,33 +48,27 @@ export async function GET(
       .limit(1);
 
     if (!generation) {
-      return NextResponse.json(
-        { error: "Generation not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Generation not found" }, { status: 404 });
     }
 
     // Verify user owns this generation
     if (generation.userId !== session.user.id) {
       return NextResponse.json(
         { error: "Forbidden - this generation belongs to another user" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Check if generation has output
     if (!generation.outputUrl) {
-      return NextResponse.json(
-        { error: "Generation not completed yet" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Generation not completed yet" }, { status: 404 });
     }
 
     // Extract object key from the URL
     // URL format: https://pub-{account_id}.r2.dev/videos/20251227/xxx.mp4
     // We need: videos/20251227/xxx.mp4
-    const urlParts = generation.outputUrl.split('/');
-    const objectKey = urlParts.slice(-3).join('/'); // Get last 3 parts: videos/20251227/xxx.mp4
+    const urlParts = generation.outputUrl.split("/");
+    const objectKey = urlParts.slice(-3).join("/"); // Get last 3 parts: videos/20251227/xxx.mp4
 
     // Generate pre-signed URL (valid for 1 hour)
     const command = new GetObjectCommand({
@@ -95,9 +86,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Error generating pre-signed URL:", error);
-    return NextResponse.json(
-      { error: "Failed to generate secure video URL" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to generate secure video URL" }, { status: 500 });
   }
 }

@@ -1,11 +1,20 @@
+import {
+  ArrowRight,
+  HardDrive,
+  Image,
+  Music,
+  Sparkles,
+  TrendingUp,
+  Video,
+  Zap,
+} from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Image, Video, Music, Zap, HardDrive, TrendingUp, Sparkles, ArrowRight } from "lucide-react";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { RecentGenerations } from "@/components/dashboard/RecentGenerations";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { RecentGenerations } from "@/components/dashboard/RecentGenerations";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Dashboard - AI Video Gen",
@@ -14,10 +23,13 @@ export const metadata: Metadata = {
 
 async function getDashboardStats() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/dashboard/stats`, {
-      headers: await headers(),
-      cache: 'no-store',
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/dashboard/stats`,
+      {
+        headers: await headers(),
+        cache: "no-store",
+      },
+    );
 
     if (!response.ok) {
       throw new Error("Failed to fetch stats");
@@ -130,7 +142,10 @@ export default async function DashboardPage() {
           <div className="text-center">
             <Sparkles className="h-8 w-8 text-cyan-400 mx-auto mb-2" />
             <p className="text-sm text-foreground/70 mb-2">Need more generations?</p>
-            <Link href="/pricing" className="text-cyan-400 hover:text-cyan-300 font-semibold text-sm inline-flex items-center gap-1 transition-colors">
+            <Link
+              href="/pricing"
+              className="text-cyan-400 hover:text-cyan-300 font-semibold text-sm inline-flex items-center gap-1 transition-colors"
+            >
               Upgrade to Pro
               <ArrowRight className="h-4 w-4" />
             </Link>

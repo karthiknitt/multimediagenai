@@ -6,24 +6,26 @@ export const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-export const signupSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
-    ),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+export const signupSchema = z
+  .object({
+    name: z
+      .string()
+      .min(2, "Name must be at least 2 characters")
+      .max(50, "Name must be less than 50 characters"),
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 // Image generation validation schemas
 export const imageGenerationSchema = z.object({
@@ -55,46 +57,61 @@ export const videoGenerationSchema = z.object({
 });
 
 // Audio generation validation schemas
-export const audioGenerationSchema = z.object({
-  // Common field
-  variant: z.enum(["music", "tts"]),
+export const audioGenerationSchema = z
+  .object({
+    // Common field
+    variant: z.enum(["music", "tts"]),
 
-  // ACE-Step fields (music variant)
-  prompt: z
-    .string()
-    .min(3, "Prompt must be at least 3 characters")
-    .max(2000, "Prompt must be less than 2000 characters")
-    .optional(),
-  duration: z.number().min(10).max(60).default(30),
-  guidanceScale: z.number().min(1).max(20).default(3.0),
+    // ACE-Step fields (music variant)
+    prompt: z
+      .string()
+      .min(3, "Prompt must be at least 3 characters")
+      .max(2000, "Prompt must be less than 2000 characters")
+      .optional(),
+    duration: z.number().min(10).max(60).default(30),
+    guidanceScale: z.number().min(1).max(20).default(3.0),
 
-  // Qwen3-TTS fields (tts variant)
-  text: z
-    .string()
-    .min(3, "Text must be at least 3 characters")
-    .max(500, "Text must be less than 500 characters for optimal results")
-    .optional(),
-  voicePreset: z.enum(["ryan", "aiden", "vivian", "serena", "uncle_fu", "dylan", "eric", "ono_anna", "sohee", "custom"]).default("ryan"),
-  voiceReferenceUrl: z.union([z.string().url(), z.undefined()]).optional(),
-  language: z.enum(["en", "zh", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"]).default("en"),
-  speed: z.number().min(0.5).max(2.0).default(1.0),
-}).refine(
-  (data) => {
-    // For music variant, prompt is required
-    if (data.variant === "music" && !data.prompt) {
-      return false;
-    }
-    // For TTS variant, text is required
-    if (data.variant === "tts" && !data.text) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "Music variant requires prompt, TTS variant requires text",
-    path: ["prompt"],
-  }
-);
+    // Qwen3-TTS fields (tts variant)
+    text: z
+      .string()
+      .min(3, "Text must be at least 3 characters")
+      .max(500, "Text must be less than 500 characters for optimal results")
+      .optional(),
+    voicePreset: z
+      .enum([
+        "ryan",
+        "aiden",
+        "vivian",
+        "serena",
+        "uncle_fu",
+        "dylan",
+        "eric",
+        "ono_anna",
+        "sohee",
+        "custom",
+      ])
+      .default("ryan"),
+    voiceReferenceUrl: z.union([z.string().url(), z.undefined()]).optional(),
+    language: z.enum(["en", "zh", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"]).default("en"),
+    speed: z.number().min(0.5).max(2.0).default(1.0),
+  })
+  .refine(
+    (data) => {
+      // For music variant, prompt is required
+      if (data.variant === "music" && !data.prompt) {
+        return false;
+      }
+      // For TTS variant, text is required
+      if (data.variant === "tts" && !data.text) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Music variant requires prompt, TTS variant requires text",
+      path: ["prompt"],
+    },
+  );
 
 // Type exports
 export type LoginInput = z.infer<typeof loginSchema>;

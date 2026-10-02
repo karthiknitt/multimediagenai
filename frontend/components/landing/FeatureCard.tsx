@@ -34,20 +34,22 @@ export function FeatureCard({
       )}
 
       {/* Gradient Background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl`} />
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl`}
+      />
 
       {/* Content */}
       <div className="relative">
         {/* Icon */}
-        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${iconBg} mb-6 group-hover:scale-110 transition-transform duration-300`}>
+        <div
+          className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${iconBg} mb-6 group-hover:scale-110 transition-transform duration-300`}
+        >
           <Icon className={`h-8 w-8 ${iconColor}`} />
         </div>
 
         {/* Title & Description */}
         <h3 className="text-2xl font-bold mb-3">{title}</h3>
-        <p className="text-foreground/70 leading-relaxed mb-6">
-          {description}
-        </p>
+        <p className="text-foreground/70 leading-relaxed mb-6">{description}</p>
 
         {/* Features List */}
         <ul className="space-y-3">

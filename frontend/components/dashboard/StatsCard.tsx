@@ -28,10 +28,12 @@ export function StatsCard({
   return (
     <div className={cn("card-premium hover-lift group relative overflow-hidden", className)}>
       {/* Gradient background */}
-      <div className={cn(
-        "absolute inset-0 bg-linear-to-br opacity-50 group-hover:opacity-70 transition-opacity",
-        gradient
-      )} />
+      <div
+        className={cn(
+          "absolute inset-0 bg-linear-to-br opacity-50 group-hover:opacity-70 transition-opacity",
+          gradient,
+        )}
+      />
 
       {/* Content */}
       <div className="relative p-6">
@@ -42,10 +44,12 @@ export function StatsCard({
             </p>
             <div className="text-3xl font-bold mono gradient-text">{value}</div>
           </div>
-          <div className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/5 group-hover:scale-110 transition-transform",
-            iconColor
-          )}>
+          <div
+            className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl bg-foreground/5 group-hover:scale-110 transition-transform",
+              iconColor,
+            )}
+          >
             <Icon className="h-6 w-6" />
           </div>
         </div>
@@ -56,7 +60,7 @@ export function StatsCard({
               <span
                 className={cn(
                   "font-semibold mono",
-                  trend.isPositive ? "text-cyan-400" : "text-red-400"
+                  trend.isPositive ? "text-cyan-400" : "text-red-400",
                 )}
               >
                 {trend.isPositive ? "+" : ""}

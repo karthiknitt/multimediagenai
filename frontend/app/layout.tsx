@@ -19,8 +19,7 @@ export const metadata: Metadata = {
   authors: [{ name: "AI Video Gen" }],
   openGraph: {
     title: "AI Video Generation Platform",
-    description:
-      "Generate high-quality images, videos, and audio from text prompts",
+    description: "Generate high-quality images, videos, and audio from text prompts",
     type: "website",
   },
 };

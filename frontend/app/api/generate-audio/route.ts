@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
-import { audioGenerationSchema } from "@/lib/validation";
-import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { modalHeaders } from "@/lib/modal";
+import { audioGenerationSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Please sign in to generate content" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -33,15 +34,11 @@ export async function POST(request: NextRequest) {
 
     // Determine which backend to call based on variant
     const isMusicVariant = validatedData.variant === "music";
-    const apiUrl = isMusicVariant
-      ? process.env.AUDIO_GEN_API_URL
-      : process.env.TTS_GEN_API_URL;
+    const apiUrl = isMusicVariant ? process.env.AUDIO_GEN_API_URL : process.env.TTS_GEN_API_URL;
 
     if (!apiUrl) {
       throw new Error(
-        `Missing environment variable: ${
-          isMusicVariant ? "AUDIO_GEN_API_URL" : "TTS_GEN_API_URL"
-        }`
+        `Missing environment variable: ${isMusicVariant ? "AUDIO_GEN_API_URL" : "TTS_GEN_API_URL"}`,
       );
     }
 
@@ -65,8 +62,10 @@ export async function POST(request: NextRequest) {
       modalRequest = {
         job_id: jobId,
         text: validatedData.text!,
-        voice_preset: validatedData.voicePreset !== "custom" ? validatedData.voicePreset : undefined,
-        voice_reference_url: validatedData.voicePreset === "custom" ? validatedData.voiceReferenceUrl : undefined,
+        voice_preset:
+          validatedData.voicePreset !== "custom" ? validatedData.voicePreset : undefined,
+        voice_reference_url:
+          validatedData.voicePreset === "custom" ? validatedData.voiceReferenceUrl : undefined,
         language: validatedData.language,
         speed: validatedData.speed,
       };
@@ -88,9 +87,7 @@ export async function POST(request: NextRequest) {
     // Call Modal API (async, don't await)
     fetch(apiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: modalHeaders(),
       body: JSON.stringify(modalRequest),
     }).catch((error) => {
       console.error("Modal API call failed:", error);
@@ -111,13 +108,13 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(
         { error: "Invalid request parameters", details: error },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

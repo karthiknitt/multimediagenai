@@ -1,5 +1,5 @@
+import { Building2, Crown, Sparkles } from "lucide-react";
 import { PricingCard } from "./PricingCard";
-import { Sparkles, Crown, Building2 } from "lucide-react";
 
 const plans = [
   {
@@ -83,14 +83,19 @@ export function Pricing() {
             Choose Your <span className="gradient-text">Plan</span>
           </h2>
           <p className="mx-auto max-w-2xl text-xl text-foreground/70 leading-relaxed">
-            Start free, upgrade anytime. All plans include access to Z-Image, Wan2.2, ACE-Step, and Qwen3-TTS.
+            Start free, upgrade anytime. All plans include access to Z-Image, Wan2.2, ACE-Step, and
+            Qwen3-TTS.
           </p>
         </div>
 
         {/* Pricing Cards */}
         <div className="grid gap-8 md:grid-cols-3">
           {plans.map((plan, index) => (
-            <div key={plan.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div
+              key={plan.name}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
               <PricingCard {...plan} />
             </div>
           ))}

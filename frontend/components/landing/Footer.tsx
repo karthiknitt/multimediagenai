@@ -1,9 +1,9 @@
 "use client";
 
+import { ArrowRight, Github, Heart, Linkedin, Mail, Sparkles, Twitter } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Github, Twitter, Linkedin, Mail, Sparkles, ArrowRight, Heart } from "lucide-react";
 
 const navigation = {
   product: [
@@ -69,7 +69,8 @@ export function Footer() {
               <span className="text-2xl font-bold gradient-text">AI Video Gen</span>
             </Link>
             <p className="text-foreground/60 leading-relaxed mb-8 max-w-sm">
-              Professional AI generation for images, videos, and audio. Powered by Z-Image, Wan2.2, ACE-Step, and Qwen3-TTS.
+              Professional AI generation for images, videos, and audio. Powered by Z-Image, Wan2.2,
+              ACE-Step, and Qwen3-TTS.
             </p>
 
             {/* Newsletter */}
@@ -86,9 +87,7 @@ export function Footer() {
                   <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-cyan-500/10 mb-2">
                     <Heart className="h-6 w-6 text-cyan-400" />
                   </div>
-                  <p className="text-sm font-semibold text-cyan-400">
-                    Thanks for subscribing!
-                  </p>
+                  <p className="text-sm font-semibold text-cyan-400">Thanks for subscribing!</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubscribe} className="flex gap-2">

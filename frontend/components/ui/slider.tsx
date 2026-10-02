@@ -27,7 +27,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
       disabled,
       ...props
     },
-    ref
+    ref,
   ) => {
     const [internalValue, setInternalValue] = React.useState(defaultValue);
     const currentValue = value ?? internalValue;
@@ -63,7 +63,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
               "relative z-10 h-5 w-full cursor-pointer appearance-none bg-transparent",
               "[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary [&::-webkit-slider-thumb]:bg-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110",
               "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary [&::-moz-range-thumb]:bg-background [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110",
-              disabled && "cursor-not-allowed opacity-50"
+              disabled && "cursor-not-allowed opacity-50",
             )}
             {...props}
           />
@@ -75,7 +75,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
         )}
       </div>
     );
-  }
+  },
 );
 Slider.displayName = "Slider";
 

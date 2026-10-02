@@ -68,7 +68,7 @@ class ImageGenerator:
         self.pipe.to("cuda")
         print("Z-Image-Turbo loaded successfully!")
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate(self, request: dict):
         """Generate image from text prompt"""
         import torch

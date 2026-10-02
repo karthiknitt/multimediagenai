@@ -44,6 +44,46 @@ video_image = modal.Image.debian_slim(python_version="3.11").pip_install(
 )
 
 
+MAX_FETCH_BYTES = 20 * 1024 * 1024
+
+
+def assert_r2_url(url: str) -> None:
+    """Only fetch user-supplied URLs from our own R2 public origin (blocks SSRF)."""
+    import os
+    from urllib.parse import urlsplit
+
+    base = os.environ.get("R2_PUBLIC_URL") or (
+        f"https://pub-{os.environ.get('R2_ACCOUNT_ID', '')}.r2.dev"
+    )
+
+    def origin(u: str):
+        p = urlsplit(u)
+        return (p.scheme, p.hostname, p.port or 443), p
+
+    try:
+        got, parts = origin(url)
+        want, _ = origin(base)
+    except ValueError as e:
+        raise ValueError(f"Invalid URL: {e}") from e
+    if got != want or parts.scheme != "https" or parts.username or parts.password:
+        raise ValueError("URL must point to this project's R2 storage")
+
+
+def fetch_r2_bytes(url: str, timeout: int = 30) -> bytes:
+    """Download a file from R2 with origin check, no redirects and a size cap."""
+    import requests
+
+    assert_r2_url(url)
+    with requests.get(url, timeout=timeout, stream=True, allow_redirects=False) as r:
+        r.raise_for_status()
+        data = bytearray()
+        for chunk in r.iter_content(1 << 20):
+            data.extend(chunk)
+            if len(data) > MAX_FETCH_BYTES:
+                raise ValueError("Downloaded file exceeds size limit")
+        return bytes(data)
+
+
 def _frames_4k_plus_1(num_frames: int) -> int:
     """Wan requires num_frames = 4k + 1"""
     num_frames = max(5, int(num_frames))
@@ -154,7 +194,7 @@ class VideoGenerator:
         public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
         return f"{public_base}/{s3_key}"
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate_text2video(self, request: dict):
         """Generate video from text prompt using Wan2.2 T2V-A14B"""
         import torch
@@ -213,14 +253,13 @@ class VideoGenerator:
             self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
             return {"status": "error", "message": str(e)}
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate_img2video(self, request: dict):
         """Generate video from image using Wan2.2 I2V-A14B"""
         import torch
         import os
         import numpy as np
         from PIL import Image
-        import requests
         from io import BytesIO
 
         # Parse request
@@ -232,9 +271,7 @@ class VideoGenerator:
         try:
             # Download source image
             self._update_db(job_id, "processing", 5, "Downloading source image...")
-            response = requests.get(image_url, timeout=30)
-            response.raise_for_status()
-            source_image = Image.open(BytesIO(response.content)).convert("RGB")
+            source_image = Image.open(BytesIO(fetch_r2_bytes(image_url))).convert("RGB")
 
             self._update_db(job_id, "processing", 15, "Loading Wan2.2 image-to-video model...")
             pipe = self._load_i2v()

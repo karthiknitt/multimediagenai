@@ -1,4 +1,4 @@
-import { Image, Video, Music, Sparkles, Zap, Infinity } from "lucide-react";
+import { Image, Infinity, Music, Sparkles, Video, Zap } from "lucide-react";
 import { FeatureCard } from "./FeatureCard";
 
 const features = [
@@ -88,15 +88,19 @@ export function Features() {
             <span className="gradient-text">Everything</span> You Need
           </h2>
           <p className="mx-auto max-w-2xl text-xl text-foreground/70 leading-relaxed">
-            Professional-grade AI generation tools powered by cutting-edge models.
-            Create images, videos, and audio without limits.
+            Professional-grade AI generation tools powered by cutting-edge models. Create images,
+            videos, and audio without limits.
           </p>
         </div>
 
         {/* Main Feature Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-16">
           {features.map((feature, index) => (
-            <div key={feature.title} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div
+              key={feature.title}
+              className="animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
               <FeatureCard {...feature} />
             </div>
           ))}
@@ -111,7 +115,9 @@ export function Features() {
             <div className="grid gap-8 md:grid-cols-3">
               {capabilities.map((capability) => (
                 <div key={capability.title} className="text-center group">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${features[0].gradient} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <div
+                    className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${features[0].gradient} flex items-center justify-center group-hover:scale-110 transition-transform`}
+                  >
                     <capability.icon className="h-8 w-8 text-cyan-400" />
                   </div>
                   <h4 className="text-lg font-bold mb-2">{capability.title}</h4>

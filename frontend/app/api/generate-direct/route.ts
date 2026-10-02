@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { modalHeaders } from "@/lib/modal";
 
 // Schema for image generation requests
 const generateRequestSchema = z.object({
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Please sign in to generate content" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
           message: "Invalid request parameters",
           details: validationResult.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,24 +74,22 @@ export async function POST(request: NextRequest) {
 
     if (!modalApiUrl) {
       return NextResponse.json(
-        { error: "Configuration error", message: `IMAGE_GEN_API_URL is not configured (model: ${data.model})` },
-        { status: 500 }
+        {
+          error: "Configuration error",
+          message: `IMAGE_GEN_API_URL is not configured (model: ${data.model})`,
+        },
+        { status: 500 },
       );
     }
 
     // Update status to processing
-    await db
-      .update(generations)
-      .set({ status: "processing" })
-      .where(eq(generations.id, jobId));
+    await db.update(generations).set({ status: "processing" }).where(eq(generations.id, jobId));
 
     // Call Modal API (this spawns async task)
     // Note: Modal API expects snake_case parameters
     const modalResponse = await fetch(modalApiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: modalHeaders(),
       body: JSON.stringify({
         job_id: jobId,
         prompt: data.prompt,
@@ -112,10 +111,7 @@ export async function POST(request: NextRequest) {
         .set({ status: "failed", error: `Modal API error: ${errorText}` })
         .where(eq(generations.id, jobId));
 
-      return NextResponse.json(
-        { error: "Modal API error", message: errorText },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Modal API error", message: errorText }, { status: 500 });
     }
 
     const modalResult = await modalResponse.json();
@@ -133,7 +129,7 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         message: "Failed to start generation. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  Download,
-  RefreshCw,
-  Copy,
   Check,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
+  Copy,
+  Download,
   Music,
+  Pause,
+  Play,
+  RefreshCw,
   SkipBack,
   SkipForward,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useSecureVideo } from "@/hooks/useSecureVideo";
+import { cn } from "@/lib/utils";
 
 interface AudioPreviewProps {
   generationId?: string | null;
@@ -227,7 +227,11 @@ export function AudioPreview({
               <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
               {/* Visual waveform placeholder */}
-              <div className="relative h-32 w-full rounded-lg bg-linear-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 p-4" role="img" aria-label="Audio waveform visualization">
+              <div
+                className="relative h-32 w-full rounded-lg bg-linear-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 p-4"
+                role="img"
+                aria-label="Audio waveform visualization"
+              >
                 <div className="flex h-full items-center justify-center gap-1">
                   {Array.from({ length: 50 }).map((_, i) => {
                     const randomHeight = 30 + Math.random() * 70;

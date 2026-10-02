@@ -1,9 +1,9 @@
 "use client";
 
-import { Progress } from "@/components/ui/progress";
+import { AlertCircle, Clock, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, X, Clock, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface GenerationProgressProps {
@@ -47,7 +47,7 @@ export function GenerationProgress({
       className={cn(
         "transition-all",
         status === "failed" && "border-destructive/50 bg-destructive/5",
-        className
+        className,
       )}
     >
       <CardContent className="p-4">
@@ -56,9 +56,7 @@ export function GenerationProgress({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {statusIcons[status]}
-              <span className="text-sm font-medium">
-                {message || statusMessages[status]}
-              </span>
+              <span className="text-sm font-medium">{message || statusMessages[status]}</span>
             </div>
             {isActive && onCancel && (
               <Button

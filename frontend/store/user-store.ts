@@ -91,6 +91,6 @@ export const useUserStore = create<UserStore>()(
         sidebarOpen: state.sidebarOpen,
         recentPrompts: state.recentPrompts,
       }),
-    }
-  )
+    },
+  ),
 );

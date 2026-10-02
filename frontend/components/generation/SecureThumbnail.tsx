@@ -1,7 +1,7 @@
 "use client";
 
+import { Loader2, Sparkles } from "lucide-react";
 import { useSecureImage } from "@/hooks/useSecureImage";
-import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SecureThumbnailProps {
@@ -30,11 +30,6 @@ export function SecureThumbnail({ generationId, alt, className }: SecureThumbnai
   }
 
   return (
-    <img
-      src={url}
-      alt={alt}
-      className={cn("rounded object-cover", className)}
-      loading="lazy"
-    />
+    <img src={url} alt={alt} className={cn("rounded object-cover", className)} loading="lazy" />
   );
 }

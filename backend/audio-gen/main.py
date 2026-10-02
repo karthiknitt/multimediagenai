@@ -104,7 +104,7 @@ class AudioGenerator:
             print("ACE-Step 1.5 loaded successfully!")
         return self.dit_handler, self.llm_handler
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate(self, request: dict):
         """Generate audio from text prompt"""
         import os
