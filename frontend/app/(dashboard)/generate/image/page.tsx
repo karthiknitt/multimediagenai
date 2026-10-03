@@ -1,24 +1,22 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock, History, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { type SubmitHandler, useForm } from "react-hook-form";
+import type { z } from "zod";
 import { GenerationLayout } from "@/components/generation/GenerationLayout";
-import { PromptInput } from "@/components/generation/PromptInput";
-import { ModelSelector, imageModels } from "@/components/generation/ModelSelector";
-import { ParameterPanel } from "@/components/generation/ParameterPanel";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ImagePreview } from "@/components/generation/ImagePreview";
+import { imageModels, ModelSelector } from "@/components/generation/ModelSelector";
+import { ParameterPanel } from "@/components/generation/ParameterPanel";
+import { PromptInput } from "@/components/generation/PromptInput";
 import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
-import { imageGenerationSchema } from "@/lib/validation";
-import { useGenerationStore, type ImageParams } from "@/store/generation-store";
-import { useGenerateImage, useCancelGeneration } from "@/hooks/useGeneration";
+import { useCancelGeneration, useGenerateImage } from "@/hooks/useGeneration";
 import { useGenerationStream } from "@/hooks/useGenerationStream";
-import { Sparkles, History, Clock } from "lucide-react";
 import { formatDistanceToNow } from "@/lib/date-utils";
-import { z } from "zod";
+import { imageGenerationSchema } from "@/lib/validation";
+import { type ImageParams, useGenerationStore } from "@/store/generation-store";
 
 // Define form data type that uses the schema with required fields
 type FormData = z.input<typeof imageGenerationSchema>;
@@ -27,8 +25,7 @@ export default function ImageGenerationPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [completedJobId, setCompletedJobId] = useState<string | null>(null);
 
-  const { imageParams, setImageParams, history, addJob, updateJob } =
-    useGenerationStore();
+  const { imageParams, setImageParams, history, addJob, updateJob } = useGenerationStore();
 
   const generateMutation = useGenerateImage();
   const cancelMutation = useCancelGeneration();
@@ -91,10 +88,16 @@ export default function ImageGenerationPage() {
   });
 
   const currentProgress = lastEvent?.progress ?? 0;
-  const currentStatus = lastEvent?.type === "failed" ? "failed" :
-                        lastEvent?.type === "completed" ? "completed" :
-                        lastEvent?.type === "progress" && lastEvent.progress && lastEvent.progress > 0 ? "processing" :
-                        activeJobId ? "pending" : "pending";
+  const currentStatus =
+    lastEvent?.type === "failed"
+      ? "failed"
+      : lastEvent?.type === "completed"
+        ? "completed"
+        : lastEvent?.type === "progress" && lastEvent.progress && lastEvent.progress > 0
+          ? "processing"
+          : activeJobId
+            ? "pending"
+            : "pending";
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
@@ -155,7 +158,7 @@ export default function ImageGenerationPage() {
     handleSubmit(onSubmit)();
   }, [handleSubmit, onSubmit]);
 
-  const handleHistoryItemClick = (item: typeof history[0]) => {
+  const handleHistoryItemClick = (item: (typeof history)[0]) => {
     setValue("prompt", item.prompt);
     // Set the completed job ID to display the historical image
     if (item.id) {
@@ -169,28 +172,30 @@ export default function ImageGenerationPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl/Cmd + Enter to submit form
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         if (!isGenerating && prompt.trim()) {
           handleSubmit(onSubmit)();
         }
       }
       // Escape to cancel generation
-      if (e.key === 'Escape' && isGenerating) {
+      if (e.key === "Escape" && isGenerating) {
         e.preventDefault();
         handleCancel();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isGenerating, prompt, handleSubmit, onSubmit, handleCancel]);
 
   // Sidebar with parameters
   const sidebar = (
     <div className="space-y-6">
       <div className="card-premium p-6">
-        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">Model</h3>
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+          Model
+        </h3>
         <ModelSelector
           value={model}
           onChange={(value) => setValue("model", value as "z-image-turbo")}
@@ -230,9 +235,7 @@ export default function ImageGenerationPage() {
       </div>
       <div className="p-4">
         {history.filter((h) => h.type === "image").length === 0 ? (
-          <p className="text-center text-sm text-foreground/60 py-8">
-            No recent generations
-          </p>
+          <p className="text-center text-sm text-foreground/60 py-8">No recent generations</p>
         ) : (
           <div className="space-y-2">
             {history
@@ -244,7 +247,7 @@ export default function ImageGenerationPage() {
                   type="button"
                   onClick={() => handleHistoryItemClick(item)}
                   className="flex w-full items-start gap-3 rounded-lg glass hover-glow border border-foreground/10 p-2 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? '...' : ''}`}
+                  aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? "..." : ""}`}
                 >
                   {item.id ? (
                     <SecureThumbnail
@@ -308,7 +311,9 @@ export default function ImageGenerationPage() {
                 type="submit"
                 className="btn-premium w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 disabled={isGenerating || !prompt.trim()}
-                aria-label={isGenerating ? "Generating image, please wait" : "Generate image from prompt"}
+                aria-label={
+                  isGenerating ? "Generating image, please wait" : "Generate image from prompt"
+                }
                 aria-live="polite"
               >
                 <span className="flex items-center justify-center gap-2">
@@ -318,7 +323,15 @@ export default function ImageGenerationPage() {
               </button>
               {!isGenerating && (
                 <p className="text-center text-xs text-foreground/50 mono">
-                  Tip: Press <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">Enter</kbd> to generate
+                  Tip: Press{" "}
+                  <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">
+                    Ctrl
+                  </kbd>{" "}
+                  +{" "}
+                  <kbd className="px-1.5 py-0.5 rounded bg-foreground/10 border border-foreground/20">
+                    Enter
+                  </kbd>{" "}
+                  to generate
                 </p>
               )}
             </div>
@@ -335,8 +348,10 @@ export default function ImageGenerationPage() {
                 />
                 {activeJobId && (
                   <div className="flex items-center justify-center gap-2 text-xs text-foreground/50 mono">
-                    <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                    <span>{isConnected ? 'Connected to server' : 'Connecting...'}</span>
+                    <div
+                      className={`h-2 w-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                    />
+                    <span>{isConnected ? "Connected to server" : "Connecting..."}</span>
                     {lastEvent && <span>• Last update: {lastEvent.type}</span>}
                   </div>
                 )}

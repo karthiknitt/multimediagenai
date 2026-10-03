@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
-import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 // Initialize R2 client
 const r2Client = new S3Client({
@@ -20,8 +20,8 @@ const r2Client = new S3Client({
 // Helper to check if file exists in R2 bucket
 async function fileExistsInR2(publicUrl: string): Promise<boolean> {
   try {
-    const urlParts = publicUrl.split('/');
-    const objectKey = urlParts.slice(-3).join('/');
+    const urlParts = publicUrl.split("/");
+    const objectKey = urlParts.slice(-3).join("/");
 
     const command = new HeadObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
@@ -31,7 +31,7 @@ async function fileExistsInR2(publicUrl: string): Promise<boolean> {
     await r2Client.send(command);
     return true;
   } catch (error: any) {
-    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+    if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
       return false;
     }
     console.error("Error checking file existence in R2:", error);
@@ -45,8 +45,8 @@ async function getPresignedUrl(publicUrl: string): Promise<string> {
     // Extract object key from public URL
     // Format: https://pub-{account_id}.r2.dev/images/20251225/xxx.png
     // We need: images/20251225/xxx.png
-    const urlParts = publicUrl.split('/');
-    const objectKey = urlParts.slice(-3).join('/');
+    const urlParts = publicUrl.split("/");
+    const objectKey = urlParts.slice(-3).join("/");
 
     const command = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
@@ -70,10 +70,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -147,7 +144,7 @@ export async function GET(request: NextRequest) {
           createdAt: gen.createdAt?.toISOString(),
           completedAt: gen.completedAt?.toISOString(),
         };
-      })
+      }),
     );
 
     // Filter out null entries (deleted files)
@@ -162,9 +159,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Generations API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch generations" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch generations" }, { status: 500 });
   }
 }

@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { modalHeaders } from "@/lib/modal";
+import { dispatchModalJob } from "@/lib/modal-job";
 
 // Schema for image generation requests
 const generateRequestSchema = z.object({
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Please sign in to generate content" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -45,11 +47,21 @@ export async function POST(request: NextRequest) {
           message: "Invalid request parameters",
           details: validationResult.error.flatten(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const data = validationResult.data;
+
+    // Modal endpoint for image generation (Z-Image-Turbo)
+    const modalApiUrl = process.env.IMAGE_GEN_API_URL;
+    if (!modalApiUrl) {
+      return NextResponse.json(
+        { error: "Configuration error", message: "IMAGE_GEN_API_URL is not configured" },
+        { status: 500 },
+      );
+    }
+    const modalRequestHeaders = modalHeaders();
 
     // Create generation record in database
     const [generation] = await db
@@ -60,38 +72,18 @@ export async function POST(request: NextRequest) {
         model: data.model,
         prompt: data.prompt,
         parameters: data,
-        status: "pending",
+        status: "processing",
       })
       .returning({ id: generations.id });
 
     const jobId = generation.id;
 
-    // Modal endpoint for image generation (Z-Image-Turbo)
-    // (FLUX1_API_URL is the legacy name for the same image-generation app; kept as a fallback)
-    const modalApiUrl: string | undefined =
-      process.env.IMAGE_GEN_API_URL ?? process.env.FLUX1_API_URL;
-
-    if (!modalApiUrl) {
-      return NextResponse.json(
-        { error: "Configuration error", message: `IMAGE_GEN_API_URL is not configured (model: ${data.model})` },
-        { status: 500 }
-      );
-    }
-
-    // Update status to processing
-    await db
-      .update(generations)
-      .set({ status: "processing" })
-      .where(eq(generations.id, jobId));
-
-    // Call Modal API (this spawns async task)
-    // Note: Modal API expects snake_case parameters
-    const modalResponse = await fetch(modalApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    // Fire and forget: Modal answers long (cold-start) requests slowly or with a redirect.
+    // Modal updates the row itself; dispatchModalJob only records failures.
+    void dispatchModalJob({
+      endpoint: modalApiUrl,
+      headers: modalRequestHeaders,
+      payload: {
         job_id: jobId,
         prompt: data.prompt,
         model: data.model,
@@ -102,29 +94,16 @@ export async function POST(request: NextRequest) {
           height: data.height,
           seed: data.seed,
         },
-      }),
+      },
+      markFailed: async (message) => {
+        await db
+          .update(generations)
+          .set({ status: "failed", error: message })
+          .where(eq(generations.id, jobId));
+      },
     });
 
-    if (!modalResponse.ok) {
-      const errorText = await modalResponse.text();
-      await db
-        .update(generations)
-        .set({ status: "failed", error: `Modal API error: ${errorText}` })
-        .where(eq(generations.id, jobId));
-
-      return NextResponse.json(
-        { error: "Modal API error", message: errorText },
-        { status: 500 }
-      );
-    }
-
-    const modalResult = await modalResponse.json();
-
-    return NextResponse.json({
-      jobId,
-      message: "Generation started",
-      modalCallId: modalResult.call_id,
-    });
+    return NextResponse.json({ jobId, message: "Generation started" });
   } catch (error) {
     console.error("Generation API error:", error);
 
@@ -133,7 +112,7 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         message: "Failed to start generation. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

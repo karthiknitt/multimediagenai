@@ -1,7 +1,7 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { Bell, Search, User } from "lucide-react";
+import { useSession } from "@/lib/auth-client";
 
 export function Header() {
   const { data: session } = useSession();

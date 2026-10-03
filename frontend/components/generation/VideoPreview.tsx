@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
-  Download,
-  RefreshCw,
-  Maximize2,
-  Copy,
   Check,
-  Play,
+  Copy,
+  Download,
+  Maximize2,
   Pause,
+  Play,
+  RefreshCw,
+  Video as VideoIcon,
   Volume2,
   VolumeX,
-  Video as VideoIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useSecureVideo } from "@/hooks/useSecureVideo";
+import { cn } from "@/lib/utils";
 
 interface VideoPreviewProps {
   generationId?: string | null;

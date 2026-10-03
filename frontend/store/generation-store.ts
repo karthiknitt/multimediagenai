@@ -150,9 +150,7 @@ export const useGenerationStore = create<GenerationStore>()(
         })),
       updateJob: (id, updates) =>
         set((state) => ({
-          activeJobs: state.activeJobs.map((job) =>
-            job.id === id ? { ...job, ...updates } : job
-          ),
+          activeJobs: state.activeJobs.map((job) => (job.id === id ? { ...job, ...updates } : job)),
         })),
       removeJob: (id) =>
         set((state) => ({
@@ -161,7 +159,7 @@ export const useGenerationStore = create<GenerationStore>()(
       clearCompletedJobs: () =>
         set((state) => ({
           activeJobs: state.activeJobs.filter(
-            (job) => job.status !== "completed" && job.status !== "failed"
+            (job) => job.status !== "completed" && job.status !== "failed",
           ),
         })),
 
@@ -190,6 +188,6 @@ export const useGenerationStore = create<GenerationStore>()(
         audioParams: state.audioParams,
         history: state.history,
       }),
-    }
-  )
+    },
+  ),
 );

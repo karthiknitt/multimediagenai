@@ -9,12 +9,7 @@ interface GenerationLayoutProps {
   className?: string;
 }
 
-export function GenerationLayout({
-  children,
-  sidebar,
-  history,
-  className,
-}: GenerationLayoutProps) {
+export function GenerationLayout({ children, sidebar, history, className }: GenerationLayoutProps) {
   return (
     <div className={cn("flex flex-col gap-6 lg:flex-row", className)}>
       {/* Left sidebar - Parameters */}

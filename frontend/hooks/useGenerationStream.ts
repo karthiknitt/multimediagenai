@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useGenerationStore } from "@/store/generation-store";
 
 export interface ProgressEvent {
@@ -25,7 +25,7 @@ interface UseGenerationStreamOptions {
 
 export function useGenerationStream(
   jobId: string | null,
-  options: UseGenerationStreamOptions = {}
+  options: UseGenerationStreamOptions = {},
 ) {
   const {
     onProgress,
@@ -128,7 +128,7 @@ export function useGenerationStream(
       // Attempt reconnect if enabled
       if (autoReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
         reconnectAttemptsRef.current += 1;
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
+        const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 10000);
 
         reconnectTimeoutRef.current = setTimeout(() => {
           connect();
@@ -137,7 +137,17 @@ export function useGenerationStream(
         setError("Connection lost. Please refresh the page.");
       }
     };
-  }, [jobId, onProgress, onComplete, onError, autoReconnect, maxReconnectAttempts, queryClient, updateJob, addToHistory]);
+  }, [
+    jobId,
+    onProgress,
+    onComplete,
+    onError,
+    autoReconnect,
+    maxReconnectAttempts,
+    queryClient,
+    updateJob,
+    addToHistory,
+  ]);
 
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
@@ -174,7 +184,7 @@ export function useGenerationStream(
 // Hook for managing multiple generation streams
 export function useGenerationStreams() {
   const [streams, setStreams] = useState<Map<string, { progress: number; status: string }>>(
-    new Map()
+    new Map(),
   );
 
   const addStream = useCallback((jobId: string) => {

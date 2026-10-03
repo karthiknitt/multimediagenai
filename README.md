@@ -2,16 +2,17 @@
 
 Enterprise-grade AI-powered image, video, and audio generation platform with professional editing capabilities.
 
-**Status:** Phase 1B Complete - Modal Backend Ready for Deployment
+**Status:** Image, video, music and speech generation working end to end; security hardening and reliability fixes in progress (see docs/plans).
 
 ---
 
 ## 🚀 Quick Links
 
-- **[PHASE1B_COMPLETE.md](PHASE1B_COMPLETE.md)** - Latest completion summary
-- **[modal_app/QUICK_START.md](modal_app/QUICK_START.md)** - Fast-track deployment
+- **[CLAUDE.md](CLAUDE.md)** - Current architecture, conventions and commands
+- **[docs/plans/](docs/plans/)** - Active plans (latest: error-scan fix plan)
 - **[PHASE1_TASKS.md](PHASE1_TASKS.md)** - Implementation roadmap
-- **[PRD.md](PRD.md)** - Complete product requirements
+- **[PRD.md](PRD.md)** - Product requirements
+- **[docs/archive/](docs/archive/)** - Historical status reports (describe the pre-2026-10 model stack)
 
 ---
 

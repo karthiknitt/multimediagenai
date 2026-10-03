@@ -1,9 +1,9 @@
 "use client";
 
+import { ArrowRight, Image, Loader2, Mic, Music, Video } from "lucide-react";
 import Link from "next/link";
-import { formatDistanceToNow } from "@/lib/date-utils";
-import { Image, Video, Music, Mic, ExternalLink, Loader2, ArrowRight } from "lucide-react";
 import { useGenerations } from "@/hooks/useGeneration";
+import { formatDistanceToNow } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 const typeIcons = {
@@ -67,9 +67,7 @@ export function RecentGenerations() {
           <p className="text-foreground/60 mt-1">Your latest AI-generated content</p>
         </div>
         <div className="p-8">
-          <p className="text-center text-sm text-red-400">
-            Failed to load recent generations
-          </p>
+          <p className="text-center text-sm text-red-400">Failed to load recent generations</p>
         </div>
       </div>
     );
@@ -100,9 +98,7 @@ export function RecentGenerations() {
                 <Image className="h-8 w-8 text-cyan-400" />
               </div>
             </div>
-            <p className="text-foreground/60 mb-6">
-              No generations yet. Start creating!
-            </p>
+            <p className="text-foreground/60 mb-6">No generations yet. Start creating!</p>
             <Link href="/generate/image" className="btn-premium inline-flex items-center gap-2">
               Generate your first image
               <ArrowRight className="h-4 w-4" />
@@ -153,7 +149,7 @@ export function RecentGenerations() {
                     <div
                       className={cn(
                         "h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]",
-                        statusColors[gen.status]
+                        statusColors[gen.status],
                       )}
                     />
                     <span className="text-xs capitalize text-foreground/60 font-semibold mono">

@@ -1,23 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 import {
-  Sparkles,
-  LayoutDashboard,
-  Image,
-  Video,
-  Music,
-  FolderOpen,
   BarChart3,
-  Settings,
+  FolderOpen,
+  Image,
+  LayoutDashboard,
   LogOut,
   Menu,
+  Music,
+  Settings,
+  Sparkles,
+  Video,
   X,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/user-store";
 
 const navigation = [
@@ -63,7 +63,7 @@ export function Sidebar() {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-72 flex-col glass-strong border-r border-foreground/10 transition-transform duration-300 lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {/* Logo */}
@@ -104,7 +104,7 @@ export function Sidebar() {
                   "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all group relative",
                   isActive
                     ? "glass-strong border border-cyan-400/30 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
-                    : "hover:glass hover:border hover:border-foreground/10"
+                    : "hover:glass hover:border hover:border-foreground/10",
                 )}
               >
                 {/* Active indicator */}
@@ -112,16 +112,20 @@ export function Sidebar() {
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-cyan-400 to-magenta-400 rounded-r-full" />
                 )}
 
-                <div className={cn(
-                  "p-1.5 rounded-lg transition-all",
-                  isActive ? "bg-cyan-500/20" : "bg-foreground/5 group-hover:bg-foreground/10"
-                )}>
-                  <item.icon className={cn("h-5 w-5", isActive ? item.color : "text-foreground/60")} />
+                <div
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all",
+                    isActive ? "bg-cyan-500/20" : "bg-foreground/5 group-hover:bg-foreground/10",
+                  )}
+                >
+                  <item.icon
+                    className={cn("h-5 w-5", isActive ? item.color : "text-foreground/60")}
+                  />
                 </div>
 
-                <span className={cn(
-                  isActive ? "text-foreground font-semibold" : "text-foreground/70"
-                )}>
+                <span
+                  className={cn(isActive ? "text-foreground font-semibold" : "text-foreground/70")}
+                >
                   {item.name}
                 </span>
               </Link>

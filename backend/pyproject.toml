@@ -1,0 +1,23 @@
+[project]
+name = "multimediagenai-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "Modal GPU apps (image/video/audio/tts generation)"
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["**/__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "S"]
+ignore = [
+  "E501",  # long lines: formatter handles code, long literals are fine
+  "S108",  # temp paths now go through tempfile
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+"*/test_*.py" = ["S101", "S113"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,7 +1,10 @@
+import logging
+import tempfile
+
 import modal
-from pathlib import Path
-import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 # Modal setup
 app = modal.App("image-generation")
@@ -68,16 +71,15 @@ class ImageGenerator:
         self.pipe.to("cuda")
         print("Z-Image-Turbo loaded successfully!")
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate(self, request: dict):
         """Generate image from text prompt"""
         import torch
         import os
-        from datetime import datetime, timezone
         import boto3
-        import psycopg2
 
         # Parse request
+        output_path = None
         job_id = request["job_id"]
         prompt = request["prompt"]
         params = request.get("parameters", {})
@@ -102,7 +104,7 @@ class ImageGenerator:
                 height=params.get("height", 1024),
                 num_inference_steps=steps,
                 guidance_scale=0.0,
-                generator=torch.Generator("cuda").manual_seed(seed)
+                generator=torch.Generator("cuda").manual_seed(seed),
             ).images[0]
 
             generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -111,15 +113,15 @@ class ImageGenerator:
             self._update_db(job_id, "processing", 75, "Uploading to R2...")
 
             # Save locally
-            output_path = f"/tmp/{job_id}.png"
+            output_path = os.path.join(tempfile.gettempdir(), f"{job_id}.png")
             image.save(output_path)
 
             # Upload to R2
             s3_client = boto3.client(
-                's3',
-                endpoint_url=f'https://{os.environ["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com',
+                "s3",
+                endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
                 aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-                aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"]
+                aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
             )
 
             # Organize by type and date: images/{yyyy-mm-dd}
@@ -128,10 +130,16 @@ class ImageGenerator:
             s3_client.upload_file(
                 output_path,
                 os.environ["R2_BUCKET_NAME"],
-                s3_key
+                s3_key,
+                ExtraArgs={"ContentType": "image/png"},
             )
+            os.remove(output_path)
 
-            output_url = f"{os.environ['R2_PUBLIC_URL']}/{s3_key}"
+            public_base = (
+                os.environ.get("R2_PUBLIC_URL")
+                or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            )
+            output_url = f"{public_base}/{s3_key}"
 
             # Update DB: completed
             self._update_db(
@@ -140,22 +148,45 @@ class ImageGenerator:
                 100,
                 "Image generated!",
                 output_url=output_url,
-                processing_time_ms=int(generation_time * 1000)
+                processing_time_ms=int(generation_time * 1000),
             )
 
             return {
                 "status": "success",
                 "job_id": job_id,
                 "output_url": output_url,
-                "generation_time_seconds": generation_time
+                "generation_time_seconds": generation_time,
             }
 
         except Exception as e:
             # Update DB: failed
-            self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            logger.exception("Generation failed for job %s", job_id)
+            if output_path and os.path.exists(output_path):
+                os.remove(output_path)
+            user_msg = (
+                str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            )
+            self._update_db(job_id, "failed", 0, user_msg)
+            return {"status": "error", "message": user_msg}
 
-    def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+    def _update_db(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
+        """Best-effort status update: retry once, then log (a status write must not fail the job)"""
+        for attempt in (1, 2):
+            try:
+                self._update_db_once(
+                    job_id, status, progress, message, output_url, processing_time_ms
+                )
+                return
+            except Exception:
+                logger.warning(
+                    "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
+                )
+
+    def _update_db_once(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -172,15 +203,15 @@ class ImageGenerator:
 
             # If status is failed, also update the error column
             if status == "failed":
-                query += ', error = %s'
+                query += ", error = %s"
                 params.append(message)
 
             if output_url:
-                query += ', output_url = %s'
+                query += ", output_url = %s"
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ', processing_time_ms = %s, completed_at = NOW()'
+                query += ", processing_time_ms = %s, completed_at = NOW()"
                 params.append(processing_time_ms)
 
             query += " WHERE id = %s"
@@ -190,19 +221,21 @@ class ImageGenerator:
             conn.commit()
             cur.close()
             conn.close()
-        except Exception as e:
-            # Silently skip DB updates for test job IDs that don't exist
-            print(f"DB update skipped for job {job_id}: {str(e)}")
+        except Exception:
+            raise
+
 
 @app.function()
 def health():
     return {"status": "healthy", "service": "image-generation", "model": MODEL_ID}
 
+
 @app.function(gpu="L40S")
 def gpu_info():
     import torch
+
     return {
         "gpu": torch.cuda.get_device_name(0),
         "pytorch_version": torch.__version__,
-        "cuda_version": torch.version.cuda
+        "cuda_version": torch.version.cuda,
     }

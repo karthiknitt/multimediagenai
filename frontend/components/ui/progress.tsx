@@ -22,7 +22,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       variant = "default",
       ...props
     },
-    ref
+    ref,
   ) => {
     const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
     const roundedPercentage = Math.round(percentage);
@@ -58,7 +58,7 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           aria-hidden="true"
           className={cn(
             "relative w-full overflow-hidden rounded-full bg-secondary",
-            sizeClasses[size]
+            sizeClasses[size],
           )}
         >
           <div
@@ -77,18 +77,16 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
               roundedPercentage >= 70 && roundedPercentage < 80 && "w-[75%]",
               roundedPercentage >= 80 && roundedPercentage < 90 && "w-[85%]",
               roundedPercentage >= 90 && roundedPercentage < 100 && "w-[95%]",
-              roundedPercentage === 100 && "w-full"
+              roundedPercentage === 100 && "w-full",
             )}
           />
         </div>
         {showLabel && (
-          <div className="mt-1 text-right text-sm text-muted-foreground">
-            {roundedPercentage}%
-          </div>
+          <div className="mt-1 text-right text-sm text-muted-foreground">{roundedPercentage}%</div>
         )}
       </div>
     );
-  }
+  },
 );
 Progress.displayName = "Progress";
 

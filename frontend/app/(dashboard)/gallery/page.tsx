@@ -1,10 +1,20 @@
 "use client";
 
+import {
+  AlertCircle,
+  Download,
+  Filter,
+  Image,
+  Loader2,
+  Mic,
+  Music,
+  Trash2,
+  Video,
+} from "lucide-react";
 import { useState } from "react";
-import { Image, Video, Music, Mic, Loader2, AlertCircle, Download, Trash2, Filter } from "lucide-react";
-import { useGenerations, useDeleteGeneration } from "@/hooks/useGeneration";
-import { cn } from "@/lib/utils";
+import { useDeleteGeneration, useGenerations } from "@/hooks/useGeneration";
 import { formatDistanceToNow } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
 const typeIcons = {
   image: Image,
@@ -37,7 +47,7 @@ export default function GalleryPage() {
   const { data, isLoading, error } = useGenerations(
     page,
     pageSize,
-    selectedType === "all" ? undefined : selectedType
+    selectedType === "all" ? undefined : selectedType,
   );
 
   const deleteGeneration = useDeleteGeneration();
@@ -78,9 +88,7 @@ export default function GalleryPage() {
           <h1 className="text-4xl sm:text-5xl font-bold mb-2">
             <span className="gradient-text">Gallery</span>
           </h1>
-          <p className="text-foreground/60 text-lg">
-            All your AI-generated content in one place
-          </p>
+          <p className="text-foreground/60 text-lg">All your AI-generated content in one place</p>
         </div>
       </div>
 
@@ -108,7 +116,7 @@ export default function GalleryPage() {
                   "flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all",
                   isActive
                     ? "bg-cyan-500/20 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-                    : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                    : "text-foreground/60 hover:text-foreground hover:bg-foreground/5",
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -124,11 +132,11 @@ export default function GalleryPage() {
         <span className="font-semibold mono">
           {total} {total === 1 ? "item" : "items"}
         </span>
+        {selectedType !== "all" && <span className="text-foreground/40">•</span>}
         {selectedType !== "all" && (
-          <span className="text-foreground/40">•</span>
-        )}
-        {selectedType !== "all" && (
-          <span>Filtered by: <span className="capitalize font-semibold">{selectedType}</span></span>
+          <span>
+            Filtered by: <span className="capitalize font-semibold">{selectedType}</span>
+          </span>
         )}
       </div>
 
@@ -182,12 +190,14 @@ export default function GalleryPage() {
             const gradient = typeGradients[gen.type as keyof typeof typeGradients];
 
             return (
-              <div
-                key={gen.id}
-                className="card-premium hover-lift group overflow-hidden"
-              >
+              <div key={gen.id} className="card-premium hover-lift group overflow-hidden">
                 {/* Media preview */}
-                <div className={cn("relative aspect-square overflow-hidden bg-gradient-to-br", gradient)}>
+                <div
+                  className={cn(
+                    "relative aspect-square overflow-hidden bg-gradient-to-br",
+                    gradient,
+                  )}
+                >
                   {/* All items are completed with outputUrl (verified in API) */}
                   {gen.type === "image" && (
                     <img
@@ -229,7 +239,12 @@ export default function GalleryPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => handleDownload(gen.outputUrl!, `${gen.type}-${gen.id}.${gen.type === 'audio' || gen.type === 'speech' ? 'wav' : gen.type === 'video' ? 'mp4' : 'png'}`)}
+                        onClick={() =>
+                          handleDownload(
+                            gen.outputUrl!,
+                            `${gen.type}-${gen.id}.${gen.type === "audio" || gen.type === "speech" ? "wav" : gen.type === "video" ? "mp4" : "png"}`,
+                          )
+                        }
                         className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-sm font-semibold transition-colors"
                       >
                         <Download className="h-4 w-4" />
@@ -249,21 +264,17 @@ export default function GalleryPage() {
                 {/* Details */}
                 <div className="p-4 space-y-3">
                   {/* Prompt */}
-                  <p className="text-sm font-semibold line-clamp-2 min-h-[2.5rem]">
-                    {gen.prompt}
-                  </p>
+                  <p className="text-sm font-semibold line-clamp-2 min-h-[2.5rem]">{gen.prompt}</p>
 
                   {/* Audio player for audio/speech */}
-                  {gen.status === "completed" && gen.outputUrl && (gen.type === "audio" || gen.type === "speech") && (
-                    <audio
-                      controls
-                      className="w-full"
-                      style={{ height: "32px" }}
-                    >
-                      <source src={gen.outputUrl} type="audio/wav" />
-                      Your browser does not support the audio element.
-                    </audio>
-                  )}
+                  {gen.status === "completed" &&
+                    gen.outputUrl &&
+                    (gen.type === "audio" || gen.type === "speech") && (
+                      <audio controls className="w-full" style={{ height: "32px" }}>
+                        <source src={gen.outputUrl} type="audio/wav" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    )}
 
                   {/* Meta info */}
                   <div className="flex items-center justify-between text-xs text-foreground/60 mono">
@@ -275,9 +286,7 @@ export default function GalleryPage() {
                   </div>
 
                   {/* Model */}
-                  <div className="text-xs text-foreground/40 mono">
-                    {gen.model}
-                  </div>
+                  <div className="text-xs text-foreground/40 mono">{gen.model}</div>
                 </div>
               </div>
             );
@@ -294,25 +303,19 @@ export default function GalleryPage() {
             disabled={page === 1}
             className={cn(
               "px-4 py-2 rounded-lg font-semibold transition-all",
-              page === 1
-                ? "text-foreground/30 cursor-not-allowed"
-                : "btn-premium"
+              page === 1 ? "text-foreground/30 cursor-not-allowed" : "btn-premium",
             )}
           >
             Previous
           </button>
-          <span className="text-sm text-foreground/60 mono">
-            Page {page}
-          </span>
+          <span className="text-sm text-foreground/60 mono">Page {page}</span>
           <button
             type="button"
             onClick={() => setPage((p) => p + 1)}
             disabled={!hasMore}
             className={cn(
               "px-4 py-2 rounded-lg font-semibold transition-all",
-              !hasMore
-                ? "text-foreground/30 cursor-not-allowed"
-                : "btn-premium"
+              !hasMore ? "text-foreground/30 cursor-not-allowed" : "btn-premium",
             )}
           >
             Next

@@ -1,7 +1,11 @@
+import logging
+import shutil
+import tempfile
+
 import modal
-from pathlib import Path
-import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 # Modal setup
 app = modal.App("audio-generation")
@@ -10,9 +14,9 @@ volume = modal.Volume.from_name("acestep-models", create_if_missing=True)
 # ACE-Step 1.5 (MIT) - open-source music generation model
 MODEL_REPO = "ACE-Step/Ace-Step1.5"
 ACESTEP_COMMIT = "ca1e85fe9430179831e6bc6be790c332190a3866"
-DIT_CONFIG = "acestep-v15-turbo"      # 8-step turbo DiT
-LM_MODEL = "acestep-5Hz-lm-1.7B"     # 5Hz language-model planner
-PROJECT_ROOT = "/models/ace"          # checkpoints live in {PROJECT_ROOT}/checkpoints
+DIT_CONFIG = "acestep-v15-turbo"  # 8-step turbo DiT
+LM_MODEL = "acestep-5Hz-lm-1.7B"  # 5Hz language-model planner
+PROJECT_ROOT = "/models/ace"  # checkpoints live in {PROJECT_ROOT}/checkpoints
 
 # Secrets
 r2_secret = modal.Secret.from_name("r2-credentials")
@@ -104,16 +108,16 @@ class AudioGenerator:
             print("ACE-Step 1.5 loaded successfully!")
         return self.dit_handler, self.llm_handler
 
-    @modal.fastapi_endpoint(method="POST")
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate(self, request: dict):
         """Generate audio from text prompt"""
         import os
-        from datetime import datetime, timezone
         import boto3
         from acestep.inference import GenerationParams, GenerationConfig, generate_music
 
         # Parse request
         job_id = request["job_id"]
+        out_dir = None
         prompt = request["prompt"]
         params = request.get("parameters", {})
 
@@ -147,7 +151,7 @@ class AudioGenerator:
                 audio_format="wav",
             )
 
-            out_dir = f"/tmp/{job_id}"
+            out_dir = os.path.join(tempfile.gettempdir(), str(job_id))
             os.makedirs(out_dir, exist_ok=True)
             result = generate_music(
                 dit_handler, llm_handler, gen_params, gen_config, save_dir=out_dir
@@ -164,10 +168,10 @@ class AudioGenerator:
 
             # Upload to R2
             s3_client = boto3.client(
-                's3',
-                endpoint_url=f'https://{os.environ["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com',
+                "s3",
+                endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
                 aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-                aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"]
+                aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
             )
 
             bucket_name = os.environ["R2_BUCKET_NAME"]
@@ -175,14 +179,14 @@ class AudioGenerator:
             date_folder = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             s3_key = f"audio/{date_folder}/{job_id}.wav"
             s3_client.upload_file(
-                output_path,
-                bucket_name,
-                s3_key,
-                ExtraArgs={'ContentType': 'audio/wav'}
+                output_path, bucket_name, s3_key, ExtraArgs={"ContentType": "audio/wav"}
             )
 
             # Generate public URL
-            public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            public_base = (
+                os.environ.get("R2_PUBLIC_URL")
+                or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            )
             output_url = f"{public_base}/{s3_key}"
 
             # Update DB: completed
@@ -192,22 +196,46 @@ class AudioGenerator:
                 100,
                 "Audio generated!",
                 output_url=output_url,
-                processing_time_ms=int(generation_time * 1000)
+                processing_time_ms=int(generation_time * 1000),
             )
 
             return {
                 "status": "success",
                 "job_id": job_id,
                 "output_url": output_url,
-                "generation_time_seconds": generation_time
+                "generation_time_seconds": generation_time,
             }
 
         except Exception as e:
             # Update DB: failed
-            self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            logger.exception("Generation failed for job %s", job_id)
+            user_msg = (
+                str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            )
+            self._update_db(job_id, "failed", 0, user_msg)
+            return {"status": "error", "message": user_msg}
+        finally:
+            if out_dir:
+                shutil.rmtree(out_dir, ignore_errors=True)
 
-    def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+    def _update_db(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
+        """Best-effort status update: retry once, then log (a status write must not fail the job)"""
+        for attempt in (1, 2):
+            try:
+                self._update_db_once(
+                    job_id, status, progress, message, output_url, processing_time_ms
+                )
+                return
+            except Exception:
+                logger.warning(
+                    "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
+                )
+
+    def _update_db_once(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -231,11 +259,11 @@ class AudioGenerator:
                 params.append(message)
 
             if output_url:
-                query += ', output_url = %s'
+                query += ", output_url = %s"
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ', processing_time_ms = %s, completed_at = NOW()'
+                query += ", processing_time_ms = %s, completed_at = NOW()"
                 params.append(processing_time_ms)
 
             query += " WHERE id = %s"
@@ -245,19 +273,21 @@ class AudioGenerator:
             conn.commit()
             cur.close()
             conn.close()
-        except Exception as e:
-            # Silently skip DB updates for test job IDs that don't exist
-            print(f"DB update skipped for job {job_id}: {str(e)}")
+        except Exception:
+            raise
+
 
 @app.function()
 def health():
     return {"status": "healthy", "service": "audio-generation", "model": MODEL_REPO}
 
+
 @app.function(gpu="L40S", image=audio_image)
 def gpu_info():
     import torch
+
     return {
         "gpu": torch.cuda.get_device_name(0),
         "pytorch_version": torch.__version__,
-        "cuda_version": torch.version.cuda
+        "cuda_version": torch.version.cuda,
     }

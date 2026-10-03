@@ -1,8 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
-import { v4 as uuidv4 } from "uuid";
+import { modalHeaders } from "@/lib/modal";
+import { dispatchModalJob } from "@/lib/modal-job";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,14 +28,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (text.length > 500) {
-      return NextResponse.json(
-        { error: "Text must be 500 characters or less" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Text must be 500 characters or less" }, { status: 400 });
     }
 
     // Generate unique job ID
     const jobId = uuidv4();
+
+    const ttsApiUrl = process.env.TTS_GEN_API_URL;
+    if (!ttsApiUrl) {
+      return NextResponse.json({ error: "Speech generation is not configured" }, { status: 500 });
+    }
+    const modalRequestHeaders = modalHeaders();
 
     // Create generation record in database
     await db.insert(generations).values({
@@ -46,31 +52,27 @@ export async function POST(request: NextRequest) {
         speed,
         voiceReferenceUrl,
       },
-      status: "pending",
+      status: "processing",
       progress: 0,
     });
 
-    // Call Modal TTS API
-    const ttsApiUrl = process.env.TTS_GEN_API_URL;
-    if (!ttsApiUrl) {
-      throw new Error("TTS_GEN_API_URL not configured");
-    }
-
-    // Trigger generation (fire and forget)
-    fetch(ttsApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    // Trigger generation (fire and forget; failures are recorded on the row)
+    void dispatchModalJob({
+      endpoint: ttsApiUrl,
+      headers: modalRequestHeaders,
+      payload: {
         job_id: jobId,
         text,
         voice_reference_url: voiceReferenceUrl,
         language,
         speed,
-      }),
-    }).catch((error) => {
-      console.error("Modal API error:", error);
+      },
+      markFailed: async (message) => {
+        await db
+          .update(generations)
+          .set({ status: "failed", error: message })
+          .where(eq(generations.id, jobId));
+      },
     });
 
     // Return job ID immediately
@@ -81,9 +83,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Speech generation error:", error);
-    return NextResponse.json(
-      { error: "Failed to start speech generation" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to start speech generation" }, { status: 500 });
   }
 }

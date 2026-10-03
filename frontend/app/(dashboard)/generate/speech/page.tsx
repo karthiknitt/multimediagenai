@@ -1,20 +1,26 @@
 "use client";
 
+import { Loader2, Upload, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Volume2, Upload } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function SpeechGenerationPage() {
   const [text, setText] = useState("");
   const [speed, setSpeed] = useState(1.0);
   const [language, setLanguage] = useState("en");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioUrl, _setAudioUrl] = useState<string | null>(null);
 
   const maxChars = 500;
   const charCount = text.length;
@@ -40,7 +46,7 @@ export default function SpeechGenerationPage() {
       // setAudioUrl(data.outputUrl);
 
       // Simulate generation for now
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       console.log("Generated speech:", { text, speed: speed, language });
     } catch (error) {
       console.error("Generation error:", error);
@@ -75,9 +81,15 @@ export default function SpeechGenerationPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="zh" disabled>Chinese (Coming Soon)</SelectItem>
-                  <SelectItem value="fr" disabled>French (Coming Soon)</SelectItem>
-                  <SelectItem value="de" disabled>German (Coming Soon)</SelectItem>
+                  <SelectItem value="zh" disabled>
+                    Chinese (Coming Soon)
+                  </SelectItem>
+                  <SelectItem value="fr" disabled>
+                    French (Coming Soon)
+                  </SelectItem>
+                  <SelectItem value="de" disabled>
+                    German (Coming Soon)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -146,7 +158,9 @@ export default function SpeechGenerationPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label htmlFor="text">Text</Label>
-                <span className={`text-sm ${charCount > maxChars ? "text-destructive" : "text-muted-foreground"}`}>
+                <span
+                  className={`text-sm ${charCount > maxChars ? "text-destructive" : "text-muted-foreground"}`}
+                >
                   {charCount} / {maxChars}
                 </span>
               </div>

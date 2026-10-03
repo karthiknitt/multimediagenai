@@ -1,11 +1,7 @@
-import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import Link from "next/link";
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
@@ -19,9 +15,7 @@ export default function AuthLayout({
       </header>
 
       {/* Main content */}
-      <main className="flex flex-1 items-center justify-center p-4">
-        {children}
-      </main>
+      <main className="flex flex-1 items-center justify-center p-4">{children}</main>
 
       {/* Footer */}
       <footer className="border-t py-4 text-center text-sm text-muted-foreground">

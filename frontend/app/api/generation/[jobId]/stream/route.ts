@@ -1,9 +1,9 @@
-import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { generations } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import type { NextRequest } from "next/server";
+import { generations } from "@/db/schema";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 // SSE timeout: 15 minutes
 const SSE_TIMEOUT = 15 * 60 * 1000;
@@ -13,7 +13,7 @@ const POLL_INTERVAL = 2000;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ jobId: string }> }
+  { params }: { params: Promise<{ jobId: string }> },
 ) {
   const { jobId } = await params;
 
@@ -27,11 +27,7 @@ export async function GET(
   }
 
   // Verify job exists and belongs to user
-  const [job] = await db
-    .select()
-    .from(generations)
-    .where(eq(generations.id, jobId))
-    .limit(1);
+  const [job] = await db.select().from(generations).where(eq(generations.id, jobId)).limit(1);
 
   if (!job) {
     return new Response("Job not found", { status: 404 });
@@ -169,7 +165,7 @@ export async function GET(
             const estimatedDuration = 30; // Assume 30 seconds for image generation
             const simulatedProgress = Math.min(
               95,
-              Math.floor((elapsedSeconds / estimatedDuration) * 100)
+              Math.floor((elapsedSeconds / estimatedDuration) * 100),
             );
 
             if (simulatedProgress > lastProgress) {

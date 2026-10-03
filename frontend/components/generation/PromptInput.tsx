@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Sparkles, Wand2, RotateCcw } from "lucide-react";
-import { PromptTemplates } from "./PromptTemplates";
+import { RotateCcw, Sparkles, Wand2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { PromptTemplates } from "./PromptTemplates";
 
 interface PromptInputProps {
   value: string;
@@ -68,7 +68,7 @@ export function PromptInput({
       // Add random enhancements that aren't already in the prompt
       const enhancedPrompt = value.trim();
       const availableEnhancements = enhancements.filter(
-        e => !enhancedPrompt.toLowerCase().includes(e.toLowerCase())
+        (e) => !enhancedPrompt.toLowerCase().includes(e.toLowerCase()),
       );
 
       if (availableEnhancements.length > 0) {
@@ -88,7 +88,7 @@ export function PromptInput({
       // const data = await response.json();
       // onChange(data.enhancedPrompt);
     } catch (error) {
-      console.error('Failed to enhance prompt:', error);
+      console.error("Failed to enhance prompt:", error);
     }
   };
 
@@ -102,30 +102,33 @@ export function PromptInput({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl/Cmd + K to clear
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         handleClear();
       }
       // Ctrl/Cmd + E to enhance (when implemented)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e' && value.length > 10) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "e" && value.length > 10) {
         e.preventDefault();
         handleEnhance();
       }
       // Escape to close template dropdown
-      if (e.key === 'Escape' && showTemplateDropdown) {
+      if (e.key === "Escape" && showTemplateDropdown) {
         setShowTemplateDropdown(false);
         textareaRef.current?.focus();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [value, showTemplateDropdown]);
 
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between">
-        <label htmlFor="prompt" className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
+        <label
+          htmlFor="prompt"
+          className="text-sm font-semibold text-foreground/80 uppercase tracking-wider"
+        >
           {label}
         </label>
         <div className="flex items-center gap-2">
@@ -188,7 +191,7 @@ export function PromptInput({
         rows={5}
         className={cn(
           "input-premium w-full resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          isOverLimit && "border-red-500/50 focus-visible:ring-red-500/30"
+          isOverLimit && "border-red-500/50 focus-visible:ring-red-500/30",
         )}
         aria-describedby="prompt-counter"
         aria-label={label}
@@ -201,11 +204,7 @@ export function PromptInput({
         id="prompt-counter"
         className={cn(
           "flex justify-end text-xs mono font-semibold",
-          isOverLimit
-            ? "text-red-400"
-            : isNearLimit
-              ? "text-yellow-400"
-              : "text-foreground/50"
+          isOverLimit ? "text-red-400" : isNearLimit ? "text-yellow-400" : "text-foreground/50",
         )}
       >
         {characterCount.toLocaleString()} / {maxLength.toLocaleString()} characters
