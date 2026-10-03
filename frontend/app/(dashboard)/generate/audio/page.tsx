@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { AudioPreview } from "@/components/generation/AudioPreview";
+import { GenerationCost } from "@/components/generation/GenerationCost";
 import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ParamControls } from "@/components/generation/ParamControls";
@@ -450,6 +451,7 @@ export default function AudioGenerationPage() {
               isLoading={isGenerating}
               onRegenerate={completedJobId ? handleRegenerate : undefined}
             />
+            <GenerationCost generationId={completedJobId} />
           </div>
         </GenerationLayout>
       </form>

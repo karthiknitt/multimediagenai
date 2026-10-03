@@ -128,6 +128,20 @@ def download_models():
     return True
 
 
+# Modal list prices (USD/second, https://modal.com/pricing): GPU + the container's
+# CPU (0.125 core minimum) and declared memory. Used to store a per-generation cost.
+GPU_USD_PER_SEC = 0.000542
+CPU_USD_PER_SEC = 0.125 * 0.0000131
+MEMORY_GIB = 0.5
+MEMORY_USD_PER_SEC = MEMORY_GIB * 0.00000222
+
+
+def run_cost_usd(processing_time_ms: int) -> float:
+    """Cost of the active function runtime (excludes cold start and idle scaledown)."""
+    rate = GPU_USD_PER_SEC + CPU_USD_PER_SEC + MEMORY_USD_PER_SEC
+    return round(processing_time_ms / 1000 * rate, 6)
+
+
 @app.cls(
     gpu="L40S",  # ACE-Step 1.5 runs in <20GB VRAM
     timeout=600,
@@ -352,8 +366,8 @@ class AudioGenerator:
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ", processing_time_ms = %s, completed_at = NOW()"
-                params.append(processing_time_ms)
+                query += ", processing_time_ms = %s, cost_usd = %s, completed_at = NOW()"
+                params.extend([processing_time_ms, run_cost_usd(processing_time_ms)])
 
             query += " WHERE id = %s"
             params.append(job_id)

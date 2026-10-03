@@ -140,6 +140,7 @@ export async function GET(request: NextRequest) {
           progress: gen.progress,
           progressMessage: gen.progressMessage,
           processingTimeMs: gen.processingTimeMs,
+          costUsd: gen.costUsd,
           sourceImageUrl: gen.sourceImageUrl,
           createdAt: gen.createdAt?.toISOString(),
           completedAt: gen.completedAt?.toISOString(),

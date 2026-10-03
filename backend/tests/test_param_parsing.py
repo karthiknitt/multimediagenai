@@ -124,7 +124,13 @@ class TestMusic:
 
     def test_clamps(self, audio):
         p = audio.parse_music_params(
-            {"duration": 9999, "bpm": 1000, "shift": 99, "lm_temperature": 9, "fade_in_duration": 99}
+            {
+                "duration": 9999,
+                "bpm": 1000,
+                "shift": 99,
+                "lm_temperature": 9,
+                "fade_in_duration": 99,
+            }
         )
         assert p["duration"] == 240.0 and p["bpm"] == 300 and p["shift"] == 5.0
         assert p["lm_temperature"] == 2.0 and p["fade_in_duration"] <= 10.0
@@ -161,3 +167,14 @@ class TestTTS:
     def test_text_fields_trimmed_and_capped(self, tts):
         p = tts.parse_tts_params({"instruct": "  warm  ", "reference_text": "x" * 900})
         assert p["instruct"] == "warm" and len(p["reference_text"]) == 500
+
+
+def test_run_cost_usd_scales_with_runtime_and_gpu():
+    video = load("video-gen")
+    tts = load("tts-gen")
+    assert video.run_cost_usd(0) == 0
+    assert video.run_cost_usd(60_000) == pytest.approx(
+        60 * (0.001097 + 0.125 * 0.0000131 + 96 * 0.00000222), rel=1e-3
+    )
+    assert video.run_cost_usd(120_000) == pytest.approx(2 * video.run_cost_usd(60_000), rel=1e-3)
+    assert tts.run_cost_usd(10_000) < video.run_cost_usd(10_000)

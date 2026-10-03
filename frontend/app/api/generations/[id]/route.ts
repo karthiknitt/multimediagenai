@@ -39,6 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       status: generation.status,
       error: generation.error,
       processingTimeMs: generation.processingTimeMs,
+      costUsd: generation.costUsd,
       createdAt: generation.createdAt?.toISOString(),
       completedAt: generation.completedAt?.toISOString(),
     });

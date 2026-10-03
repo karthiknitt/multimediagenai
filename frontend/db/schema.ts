@@ -1,4 +1,13 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  doublePrecision,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -68,6 +77,7 @@ export const generations = pgTable("generations", {
   progressMessage: text("progress_message"), // Current progress message
   error: text("error"),
   processingTimeMs: integer("processing_time_ms"),
+  costUsd: doublePrecision("cost_usd"), // Modal compute cost, written by the backend on completion
   sourceImageUrl: text("source_image_url"), // For img2video generations
   createdAt: timestamp("created_at").notNull().defaultNow(),
   completedAt: timestamp("completed_at"),
