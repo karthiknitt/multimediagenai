@@ -69,7 +69,8 @@ export const audioGenerationSchema = z
       .max(2000, "Prompt must be less than 2000 characters")
       .optional(),
     duration: z.number().min(10).max(60).default(30),
-    guidanceScale: z.number().min(1).max(20).default(3.0),
+    lyrics: z.string().max(3000).optional(), // optional; omitted => instrumental
+    guidanceScale: z.number().min(1).max(20).default(3.0), // UI-only: ACE-Step turbo does not use CFG
 
     // Qwen3-TTS fields (tts variant)
     text: z

@@ -1,7 +1,10 @@
+import logging
+import tempfile
+
 import modal
-from pathlib import Path
-import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 # Modal setup
 app = modal.App("image-generation")
@@ -73,11 +76,10 @@ class ImageGenerator:
         """Generate image from text prompt"""
         import torch
         import os
-        from datetime import datetime, timezone
         import boto3
-        import psycopg2
 
         # Parse request
+        output_path = None
         job_id = request["job_id"]
         prompt = request["prompt"]
         params = request.get("parameters", {})
@@ -111,7 +113,7 @@ class ImageGenerator:
             self._update_db(job_id, "processing", 75, "Uploading to R2...")
 
             # Save locally
-            output_path = f"/tmp/{job_id}.png"
+            output_path = os.path.join(tempfile.gettempdir(), f"{job_id}.png")
             image.save(output_path)
 
             # Upload to R2
@@ -128,10 +130,13 @@ class ImageGenerator:
             s3_client.upload_file(
                 output_path,
                 os.environ["R2_BUCKET_NAME"],
-                s3_key
+                s3_key,
+                ExtraArgs={'ContentType': 'image/png'}
             )
+            os.remove(output_path)
 
-            output_url = f"{os.environ['R2_PUBLIC_URL']}/{s3_key}"
+            public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            output_url = f"{public_base}/{s3_key}"
 
             # Update DB: completed
             self._update_db(
@@ -152,10 +157,27 @@ class ImageGenerator:
 
         except Exception as e:
             # Update DB: failed
-            self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            logger.exception("Generation failed for job %s", job_id)
+            if output_path and os.path.exists(output_path):
+                os.remove(output_path)
+            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            self._update_db(job_id, "failed", 0, user_msg)
+            return {"status": "error", "message": user_msg}
 
     def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+        """Best-effort status update: retry once, then log (a status write must not fail the job)"""
+        for attempt in (1, 2):
+            try:
+                self._update_db_once(
+                    job_id, status, progress, message, output_url, processing_time_ms
+                )
+                return
+            except Exception:
+                logger.warning(
+                    "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
+                )
+
+    def _update_db_once(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -190,9 +212,8 @@ class ImageGenerator:
             conn.commit()
             cur.close()
             conn.close()
-        except Exception as e:
-            # Silently skip DB updates for test job IDs that don't exist
-            print(f"DB update skipped for job {job_id}: {str(e)}")
+        except Exception:
+            raise
 
 @app.function()
 def health():

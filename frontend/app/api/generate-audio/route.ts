@@ -6,6 +6,7 @@ import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { modalHeaders } from "@/lib/modal";
+import { dispatchModalJob } from "@/lib/modal-job";
 import { audioGenerationSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
@@ -27,7 +28,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Validate request body
-    const validatedData = audioGenerationSchema.parse(body);
+    const parsed = audioGenerationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request parameters", details: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const validatedData = parsed.data;
 
     // Generate UUID for the job
     const jobId = uuidv4();
@@ -37,10 +45,15 @@ export async function POST(request: NextRequest) {
     const apiUrl = isMusicVariant ? process.env.AUDIO_GEN_API_URL : process.env.TTS_GEN_API_URL;
 
     if (!apiUrl) {
-      throw new Error(
+      console.error(
         `Missing environment variable: ${isMusicVariant ? "AUDIO_GEN_API_URL" : "TTS_GEN_API_URL"}`,
       );
+      return NextResponse.json(
+        { error: "Configuration error", message: "Audio generation is not configured" },
+        { status: 500 },
+      );
     }
+    const modalRequestHeaders = modalHeaders();
 
     // Prepare the request payload based on variant
     let modalRequest: Record<string, unknown>;
@@ -53,7 +66,7 @@ export async function POST(request: NextRequest) {
         prompt: validatedData.prompt!,
         parameters: {
           duration: validatedData.duration,
-          guidance_scale: validatedData.guidanceScale,
+          lyrics: validatedData.lyrics,
         },
       };
       modelName = "ace-step-1.5";
@@ -84,37 +97,23 @@ export async function POST(request: NextRequest) {
       progress: 0,
     });
 
-    // Call Modal API (async, don't await)
-    fetch(apiUrl, {
-      method: "POST",
-      headers: modalHeaders(),
-      body: JSON.stringify(modalRequest),
-    }).catch((error) => {
-      console.error("Modal API call failed:", error);
-      // Update database with error (fire and forget)
-      db.update(generations)
-        .set({
-          status: "failed",
-          error: `Modal API error: ${error.message}`,
-        })
-        .where(eq(generations.id, jobId))
-        .catch(console.error);
+    // Fire and forget; failures are recorded on the row
+    void dispatchModalJob({
+      endpoint: apiUrl,
+      headers: modalRequestHeaders,
+      payload: modalRequest,
+      markFailed: async (message) => {
+        await db
+          .update(generations)
+          .set({ status: "failed", error: message })
+          .where(eq(generations.id, jobId));
+      },
     });
 
     return NextResponse.json({ jobId }, { status: 202 });
   } catch (error) {
     console.error("Audio generation error:", error);
 
-    if (error instanceof Error && error.name === "ZodError") {
-      return NextResponse.json(
-        { error: "Invalid request parameters", details: error },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

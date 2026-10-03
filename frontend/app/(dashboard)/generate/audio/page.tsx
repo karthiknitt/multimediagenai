@@ -9,9 +9,6 @@ import { AudioPreview } from "@/components/generation/AudioPreview";
 import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { PromptInput } from "@/components/generation/PromptInput";
-import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCancelGeneration, useGenerateAudio } from "@/hooks/useGeneration";
 import { useGenerationStream } from "@/hooks/useGenerationStream";
 import { formatDistanceToNow } from "@/lib/date-utils";
@@ -81,7 +78,7 @@ export default function AudioGenerationPage() {
   const duration = watch("duration") ?? 30;
   const voicePreset = watch("voicePreset") ?? "ryan";
   const voiceReferenceUrl = watch("voiceReferenceUrl");
-  const language = watch("language") ?? "en";
+  const _language = watch("language") ?? "en";
   const speed = watch("speed") ?? 1.0;
 
   // Update parameters when variant changes

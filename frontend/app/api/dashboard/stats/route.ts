@@ -1,4 +1,4 @@
-import { HeadObjectCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
+import { HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";

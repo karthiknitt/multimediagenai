@@ -12,8 +12,6 @@ import { imageModels, ModelSelector } from "@/components/generation/ModelSelecto
 import { ParameterPanel } from "@/components/generation/ParameterPanel";
 import { PromptInput } from "@/components/generation/PromptInput";
 import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCancelGeneration, useGenerateImage } from "@/hooks/useGeneration";
 import { useGenerationStream } from "@/hooks/useGenerationStream";
 import { formatDistanceToNow } from "@/lib/date-utils";

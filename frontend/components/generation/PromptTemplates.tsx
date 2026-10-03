@@ -1,8 +1,7 @@
 "use client";
 
-import { Camera, Image, Mountain, Palette, Sparkles, User } from "lucide-react";
+import { Camera, Mountain, Palette, Sparkles, User } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
 
 interface PromptTemplatesProps {
   onSelect: (template: string) => void;

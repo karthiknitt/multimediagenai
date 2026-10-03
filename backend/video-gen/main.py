@@ -1,7 +1,10 @@
+import logging
+import tempfile
+
 import modal
-from pathlib import Path
-import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 # Modal setup
 app = modal.App("video-generation")
@@ -169,10 +172,19 @@ class VideoGenerator:
     def _encode_and_upload(self, job_id, frames):
         """Encode frames to mp4 and upload to R2. Returns the public URL."""
         import os
-        import boto3
         from diffusers.utils import export_to_video
 
-        output_path = f"/tmp/{job_id}.mp4"
+        output_path = os.path.join(tempfile.gettempdir(), f"{job_id}.mp4")
+        try:
+            return self._upload_video(frames, output_path, job_id, export_to_video)
+        finally:
+            if os.path.exists(output_path):
+                os.remove(output_path)
+
+    def _upload_video(self, frames, output_path, job_id, export_to_video):
+        import os
+        import boto3
+
         export_to_video(frames, output_path, fps=FPS)
 
         s3_client = boto3.client(
@@ -250,8 +262,10 @@ class VideoGenerator:
             }
 
         except Exception as e:
-            self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            logger.exception("Generation failed for job %s", job_id)
+            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            self._update_db(job_id, "failed", 0, user_msg)
+            return {"status": "error", "message": user_msg}
 
     @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
     def generate_img2video(self, request: dict):
@@ -325,10 +339,25 @@ class VideoGenerator:
             }
 
         except Exception as e:
-            self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            logger.exception("Generation failed for job %s", job_id)
+            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            self._update_db(job_id, "failed", 0, user_msg)
+            return {"status": "error", "message": user_msg}
 
     def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+        """Best-effort status update: retry once, then log (a status write must not fail the job)"""
+        for attempt in (1, 2):
+            try:
+                self._update_db_once(
+                    job_id, status, progress, message, output_url, processing_time_ms
+                )
+                return
+            except Exception:
+                logger.warning(
+                    "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
+                )
+
+    def _update_db_once(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -363,9 +392,8 @@ class VideoGenerator:
             conn.commit()
             cur.close()
             conn.close()
-        except Exception as e:
-            # Silently skip DB updates for test job IDs that don't exist
-            print(f"DB update skipped for job {job_id}: {str(e)}")
+        except Exception:
+            raise
 
 @app.function()
 def health():

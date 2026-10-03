@@ -1,7 +1,11 @@
+import logging
+import shutil
+import tempfile
+
 import modal
-from pathlib import Path
-import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 # Modal setup
 app = modal.App("audio-generation")
@@ -108,12 +112,12 @@ class AudioGenerator:
     def generate(self, request: dict):
         """Generate audio from text prompt"""
         import os
-        from datetime import datetime, timezone
         import boto3
         from acestep.inference import GenerationParams, GenerationConfig, generate_music
 
         # Parse request
         job_id = request["job_id"]
+        out_dir = None
         prompt = request["prompt"]
         params = request.get("parameters", {})
 
@@ -147,7 +151,7 @@ class AudioGenerator:
                 audio_format="wav",
             )
 
-            out_dir = f"/tmp/{job_id}"
+            out_dir = os.path.join(tempfile.gettempdir(), str(job_id))
             os.makedirs(out_dir, exist_ok=True)
             result = generate_music(
                 dit_handler, llm_handler, gen_params, gen_config, save_dir=out_dir
@@ -204,10 +208,28 @@ class AudioGenerator:
 
         except Exception as e:
             # Update DB: failed
-            self._update_db(job_id, "failed", 0, f"Error: {str(e)}")
-            return {"status": "error", "message": str(e)}
+            logger.exception("Generation failed for job %s", job_id)
+            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            self._update_db(job_id, "failed", 0, user_msg)
+            return {"status": "error", "message": user_msg}
+        finally:
+            if out_dir:
+                shutil.rmtree(out_dir, ignore_errors=True)
 
     def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+        """Best-effort status update: retry once, then log (a status write must not fail the job)"""
+        for attempt in (1, 2):
+            try:
+                self._update_db_once(
+                    job_id, status, progress, message, output_url, processing_time_ms
+                )
+                return
+            except Exception:
+                logger.warning(
+                    "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
+                )
+
+    def _update_db_once(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -245,9 +267,8 @@ class AudioGenerator:
             conn.commit()
             cur.close()
             conn.close()
-        except Exception as e:
-            # Silently skip DB updates for test job IDs that don't exist
-            print(f"DB update skipped for job {job_id}: {str(e)}")
+        except Exception:
+            raise
 
 @app.function()
 def health():

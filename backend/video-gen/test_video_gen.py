@@ -23,7 +23,7 @@ def test_text2video():
     print(f"Endpoint: {url}")
     print(f"Request: {json.dumps(payload, indent=2)}")
 
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload, timeout=600)
 
     print(f"\nResponse status: {response.status_code}")
     print(f"Response body: {json.dumps(response.json(), indent=2)}")

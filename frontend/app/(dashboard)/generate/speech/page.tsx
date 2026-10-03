@@ -20,7 +20,7 @@ export default function SpeechGenerationPage() {
   const [speed, setSpeed] = useState(1.0);
   const [language, setLanguage] = useState("en");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioUrl, _setAudioUrl] = useState<string | null>(null);
 
   const maxChars = 500;
   const charCount = text.length;

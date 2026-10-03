@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ExternalLink, Image, Loader2, Mic, Music, Video } from "lucide-react";
+import { ArrowRight, Image, Loader2, Mic, Music, Video } from "lucide-react";
 import Link from "next/link";
 import { useGenerations } from "@/hooks/useGeneration";
 import { formatDistanceToNow } from "@/lib/date-utils";

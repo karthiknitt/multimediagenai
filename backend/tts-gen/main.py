@@ -1,11 +1,15 @@
-import modal
-import os
 import io
+import logging
+import os
+import tempfile
 import time
+
+import modal
 from datetime import datetime
-from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # Modal app and volume setup
 app = modal.App("tts-generation")
@@ -213,7 +217,16 @@ class TTSGenerator:
         return self.clone_model
 
     def update_db_status(self, job_id: str, status: str, progress: int = 0, error: str = None, output_url: str = None, processing_time_ms: int = None):
-        """Update generation status in database"""
+        """Best-effort status update: retry once, then log (a status write must not fail the job)"""
+        for attempt in (1, 2):
+            try:
+                self._update_db_status_once(job_id, status, progress, error, output_url, processing_time_ms)
+                return
+            except Exception:
+                logger.warning("DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True)
+
+    def _update_db_status_once(self, job_id: str, status: str, progress: int = 0, error: str = None, output_url: str = None, processing_time_ms: int = None):
+        """Update generation status in database (raises on failure)"""
         import psycopg2
         try:
             conn = psycopg2.connect(self.database_url)
@@ -243,8 +256,8 @@ class TTSGenerator:
             conn.commit()
             cur.close()
             conn.close()
-        except Exception as e:
-            print(f"Database update error: {e}")
+        except Exception:
+            raise
 
     def upload_to_r2(self, audio_data: bytes, job_id: str) -> str:
         """Upload audio to R2 and return public URL"""
@@ -303,18 +316,18 @@ class TTSGenerator:
             # Download custom reference audio from URL and clone it
             print(f"Downloading custom voice reference from: {voice_reference_url}")
             ref_bytes = fetch_r2_bytes(voice_reference_url, timeout=15)
-            ref_file = f"/tmp/custom_ref_{os.urandom(8).hex()}.wav"
-            with open(ref_file, 'wb') as f:
-                f.write(ref_bytes)
+            with tempfile.NamedTemporaryFile(suffix=".wav") as ref:
+                ref.write(ref_bytes)
+                ref.flush()
 
-            # No transcript is collected by the UI, so clone from the speaker
-            # embedding only (x_vector_only_mode needs no reference text).
-            clone = self._get_clone_model()
-            prompt_items = clone.create_voice_clone_prompt(
-                ref_audio=ref_file,
-                ref_text=None,
-                x_vector_only_mode=True,
-            )
+                # No transcript is collected by the UI, so clone from the speaker
+                # embedding only (x_vector_only_mode needs no reference text).
+                clone = self._get_clone_model()
+                prompt_items = clone.create_voice_clone_prompt(
+                    ref_audio=ref.name,
+                    ref_text=None,
+                    x_vector_only_mode=True,
+                )
             wavs, sample_rate = clone.generate_voice_clone(
                 text=text,
                 language=qwen_language,
@@ -390,8 +403,8 @@ class TTSGenerator:
             ))
 
         except Exception as e:
-            error_msg = str(e)
-            print(f"TTS generation error: {error_msg}")
+            logger.exception("TTS generation failed for job %s", request.job_id)
+            error_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
 
             # Update status to failed
             self.update_db_status(request.job_id, "failed", error=error_msg)

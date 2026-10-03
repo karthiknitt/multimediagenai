@@ -6,6 +6,7 @@ import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { modalHeaders } from "@/lib/modal";
+import { dispatchModalJob } from "@/lib/modal-job";
 
 // Schema for video generation requests
 const generateVideoRequestSchema = z.object({
@@ -58,27 +59,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create generation record in database
-    const [generation] = await db
-      .insert(generations)
-      .values({
-        userId,
-        type: "video",
-        model: data.variant === "text2video" ? "wan22-t2v" : "wan22-i2v",
-        prompt: data.prompt,
-        parameters: data,
-        status: "pending",
-      })
-      .returning({ id: generations.id });
-
-    const jobId = generation.id;
-
-    // Get Modal API URLs for video generation
-    const text2videoUrl = process.env.VIDEO_GEN_TEXT2VIDEO_API_URL;
-    const img2videoUrl = process.env.VIDEO_GEN_IMG2VIDEO_API_URL;
-
-    // Determine which Modal endpoint to use based on variant
-    const endpoint = data.variant === "text2video" ? text2videoUrl : img2videoUrl;
+    // Pick the Modal endpoint for this variant (check config before creating a row)
+    const endpoint =
+      data.variant === "text2video"
+        ? process.env.VIDEO_GEN_TEXT2VIDEO_API_URL
+        : process.env.VIDEO_GEN_IMG2VIDEO_API_URL;
 
     if (!endpoint) {
       return NextResponse.json(
@@ -89,19 +74,23 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
+    const modalRequestHeaders = modalHeaders();
 
-    // Update status to processing
-    await db.update(generations).set({ status: "processing" }).where(eq(generations.id, jobId));
+    // Create generation record in database
+    const [generation] = await db
+      .insert(generations)
+      .values({
+        userId,
+        type: "video",
+        model: data.variant === "text2video" ? "wan22-t2v" : "wan22-i2v",
+        prompt: data.prompt,
+        parameters: data,
+        status: "processing",
+      })
+      .returning({ id: generations.id });
 
-    const markFailed = async (message: string) => {
-      await db
-        .update(generations)
-        .set({ status: "failed", error: message })
-        .where(eq(generations.id, jobId))
-        .catch(console.error);
-    };
+    const jobId = generation.id;
 
-    // Call Modal API
     const modalPayload: Record<string, unknown> = {
       job_id: jobId,
       prompt: data.prompt,
@@ -111,40 +100,24 @@ export async function POST(request: NextRequest) {
         seed: data.seed,
       },
     };
-
-    // Add image_url for img2video
     if (data.variant === "img2video" && data.sourceImageUrl) {
       modalPayload.image_url = data.sourceImageUrl;
     }
 
-    // Fire and forget: Wan2.2 takes minutes and Modal answers long requests with
-    // a 303 redirect, so we must not hold this request open. Modal writes progress and
-    // the final status/output_url to the generations row itself; the UI polls that
-    // row via /api/generation/[jobId]/stream and shows the video once it is completed.
-    fetch(endpoint, {
-      method: "POST",
-      headers: modalHeaders(),
-      body: JSON.stringify(modalPayload),
-    })
-      .then(async (modalResponse) => {
-        if (!modalResponse.ok) {
-          const errorText = await modalResponse.text();
-          await markFailed(`Modal API error: ${errorText}`);
-          return;
-        }
-        // Modal reports failures in a 200 body ({ status: "error" }) and updates the DB
-        // itself, but make sure a missing DB update can never leave the job hanging.
-        const result = await modalResponse.json().catch(() => null);
-        if (result?.status === "error") {
-          await markFailed(`Modal API error: ${result.message ?? "unknown error"}`);
-        }
-      })
-      .catch(async (error: unknown) => {
-        console.error("Modal video API call failed:", error);
-        await markFailed(
-          `Modal API error: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
+    // Fire and forget: Wan2.2 takes minutes, so we must not hold this request open.
+    // Modal writes progress and the final status/output_url to the row itself; the UI
+    // polls it via /api/generation/[jobId]/stream.
+    void dispatchModalJob({
+      endpoint,
+      headers: modalRequestHeaders,
+      payload: modalPayload,
+      markFailed: async (message) => {
+        await db
+          .update(generations)
+          .set({ status: "failed", error: message })
+          .where(eq(generations.id, jobId));
+      },
+    });
 
     return NextResponse.json({
       jobId,
