@@ -2,6 +2,7 @@
 
 import { ArrowRight, Image, Loader2, Mic, Music, Video } from "lucide-react";
 import Link from "next/link";
+import { VideoThumbnail } from "@/components/generation/VideoThumbnail";
 import { useGenerations } from "@/hooks/useGeneration";
 import { formatDistanceToNow } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
@@ -111,19 +112,26 @@ export function RecentGenerations() {
               const iconColor = typeColors[gen.type as keyof typeof typeColors] || "text-cyan-400";
               const variantLabel = getVariantLabel(gen);
               const showThumbnail = gen.type === "image" && gen.outputUrl;
+              const showVideoThumbnail = gen.type === "video" && gen.outputUrl;
 
               return (
                 <div
                   key={gen.id}
                   className="glass hover-glow group flex items-center gap-4 rounded-xl border border-foreground/10 p-4 transition-all"
                 >
-                  {/* Thumbnail - only show for images, use icons for video/audio */}
+                  {/* Thumbnail - images and videos (first frame); icon for audio */}
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-foreground/5 overflow-hidden">
                     {showThumbnail ? (
                       <img
                         src={gen.outputUrl}
                         alt={gen.prompt.slice(0, 50)}
                         className="h-full w-full object-cover"
+                      />
+                    ) : showVideoThumbnail ? (
+                      <VideoThumbnail
+                        src={gen.outputUrl as string}
+                        label={gen.prompt.slice(0, 50)}
+                        className="h-full w-full"
                       />
                     ) : (
                       <Icon className={cn("h-7 w-7", iconColor)} />

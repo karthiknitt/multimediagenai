@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Dices, RotateCcw, X } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { defaultsFor, type ParamDef } from "@/lib/model-params";
 import { cn } from "@/lib/utils";
+import { useUserStore } from "@/store/user-store";
 
 interface ParamControlsProps {
   defs: readonly ParamDef[];
@@ -278,7 +279,12 @@ function Section({ defs, values, onChange, disabled }: Omit<ParamControlsProps, 
  * `advanced` ones in a collapsible section. Values are controlled by the parent page.
  */
 export function ParamControls({ defs, values, onChange, disabled, className }: ParamControlsProps) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const defaultOpen = useUserStore((s) => s.preferences.showAdvancedOptions);
+  const [showAdvanced, setShowAdvanced] = useState(defaultOpen);
+  // the persisted preference can hydrate after the first render
+  useEffect(() => {
+    if (defaultOpen) setShowAdvanced(true);
+  }, [defaultOpen]);
   const main = defs.filter((d) => !d.advanced);
   const advanced = defs.filter((d) => d.advanced);
   const advancedVisible = advanced.some((d) => !d.when || d.when(values));

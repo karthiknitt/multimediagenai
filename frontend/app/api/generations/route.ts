@@ -1,4 +1,9 @@
-import { GetObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -161,5 +166,58 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Generations API error:", error);
     return NextResponse.json({ error: "Failed to fetch generations" }, { status: 500 });
+  }
+}
+
+/**
+ * Delete ALL of the signed-in user's generations (rows and R2 files).
+ * Requires `{ "confirm": "DELETE" }` in the body so it can't be triggered by accident.
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => null);
+    if (body?.confirm !== "DELETE") {
+      return NextResponse.json(
+        { error: 'Send { "confirm": "DELETE" } to delete all generations' },
+        { status: 400 },
+      );
+    }
+
+    const rows = await db
+      .select({ id: generations.id, outputUrl: generations.outputUrl })
+      .from(generations)
+      .where(eq(generations.userId, session.user.id));
+
+    // Remove files first (best effort, 1000 keys per request), then the rows
+    const keys = rows
+      .map((r) => r.outputUrl)
+      .filter((u): u is string => !!u)
+      .map((u) => u.split("/").slice(-3).join("/"));
+    let filesDeleted = 0;
+    for (let i = 0; i < keys.length; i += 1000) {
+      try {
+        const res = await r2Client.send(
+          new DeleteObjectsCommand({
+            Bucket: process.env.R2_BUCKET_NAME!,
+            Delete: { Objects: keys.slice(i, i + 1000).map((Key) => ({ Key })), Quiet: true },
+          }),
+        );
+        filesDeleted += keys.slice(i, i + 1000).length - (res.Errors?.length ?? 0);
+      } catch (error) {
+        console.error("R2 bulk delete error:", error);
+      }
+    }
+
+    await db.delete(generations).where(eq(generations.userId, session.user.id));
+
+    return NextResponse.json({ deleted: rows.length, filesDeleted });
+  } catch (error) {
+    console.error("Delete all generations error:", error);
+    return NextResponse.json({ error: "Failed to delete generations" }, { status: 500 });
   }
 }

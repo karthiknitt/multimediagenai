@@ -24,7 +24,7 @@ export function PromptInput({
   maxLength = 2000,
   placeholder = "Describe the image you want to generate...",
   label = "Prompt",
-  showTemplates = true,
+  showTemplates = false, // templates are image-prompt presets; only the image page opts in
   showEnhance = true,
   disabled = false,
   className,
