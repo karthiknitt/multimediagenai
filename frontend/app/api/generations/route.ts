@@ -11,6 +11,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { objectKeyFromUrl } from "@/lib/r2-keys";
 
 // Initialize R2 client
 const r2Client = new S3Client({
@@ -197,7 +198,7 @@ export async function DELETE(request: NextRequest) {
     const keys = rows
       .map((r) => r.outputUrl)
       .filter((u): u is string => !!u)
-      .map((u) => u.split("/").slice(-3).join("/"));
+      .map(objectKeyFromUrl);
     let filesDeleted = 0;
     for (let i = 0; i < keys.length; i += 1000) {
       try {

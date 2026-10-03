@@ -11,7 +11,8 @@ import {
   Trash2,
   Video,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { MediaModal } from "@/components/generation/MediaModal";
 import { VideoThumbnail } from "@/components/generation/VideoThumbnail";
 import { useDeleteGeneration, useGenerations } from "@/hooks/useGeneration";
 import { formatDistanceToNow } from "@/lib/date-utils";
@@ -54,27 +55,17 @@ export default function GalleryPage() {
 
   const deleteGeneration = useDeleteGeneration();
 
+  const [viewing, setViewing] = useState<{
+    id: string;
+    type: "image" | "video";
+    src: string;
+    title: string;
+  } | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
+
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this generation?")) {
       await deleteGeneration.mutateAsync(id);
-    }
-  };
-
-  const handleDownload = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(blobUrl);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error("Download failed:", error);
-      alert("Failed to download file");
     }
   };
 
@@ -221,6 +212,23 @@ export default function GalleryPage() {
                     </div>
                   )}
 
+                  {/* Click to open image/video full-size in a modal (audio plays inline below) */}
+                  {(gen.type === "image" || gen.type === "video") && gen.outputUrl && (
+                    <button
+                      type="button"
+                      aria-label={`Open ${gen.type}: ${gen.prompt.slice(0, 60)}`}
+                      className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                      onClick={() =>
+                        setViewing({
+                          id: gen.id,
+                          type: gen.type as "image" | "video",
+                          src: gen.outputUrl as string,
+                          title: gen.prompt,
+                        })
+                      }
+                    />
+                  )}
+
                   {/* Type badge */}
                   <div className="absolute top-3 right-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm">
                     <Icon className={cn("h-3.5 w-3.5", iconColor)} />
@@ -232,19 +240,14 @@ export default function GalleryPage() {
                   {/* Action buttons - show on hover */}
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDownload(
-                            gen.outputUrl!,
-                            `${gen.type}-${gen.id}.${gen.type === "audio" || gen.type === "speech" ? "wav" : gen.type === "video" ? "mp4" : "png"}`,
-                          )
-                        }
+                      <a
+                        href={`/api/generations/${gen.id}/download`}
+                        download
                         className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-sm font-semibold transition-colors"
                       >
                         <Download className="h-4 w-4" />
                         Download
-                      </button>
+                      </a>
                       <button
                         type="button"
                         onClick={() => handleDelete(gen.id)}
@@ -326,6 +329,16 @@ export default function GalleryPage() {
             Next
           </button>
         </div>
+      )}
+
+      {viewing && (
+        <MediaModal
+          type={viewing.type}
+          src={viewing.src}
+          title={viewing.title}
+          downloadHref={`/api/generations/${viewing.id}/download`}
+          onClose={closeViewer}
+        />
       )}
     </div>
   );
