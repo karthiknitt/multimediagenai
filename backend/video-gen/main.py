@@ -188,10 +188,10 @@ class VideoGenerator:
         export_to_video(frames, output_path, fps=FPS)
 
         s3_client = boto3.client(
-            's3',
-            endpoint_url=f'https://{os.environ["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com',
+            "s3",
+            endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
             aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"]
+            aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
         )
 
         # Organize by type and date: videos/{yyyy-mm-dd}
@@ -201,9 +201,11 @@ class VideoGenerator:
             output_path,
             os.environ["R2_BUCKET_NAME"],
             s3_key,
-            ExtraArgs={'ContentType': 'video/mp4'}
+            ExtraArgs={"ContentType": "video/mp4"},
         )
-        public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+        public_base = (
+            os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+        )
         return f"{public_base}/{s3_key}"
 
     @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
@@ -251,19 +253,21 @@ class VideoGenerator:
                 100,
                 "Video generated!",
                 output_url=output_url,
-                processing_time_ms=int(generation_time * 1000)
+                processing_time_ms=int(generation_time * 1000),
             )
 
             return {
                 "status": "success",
                 "job_id": job_id,
                 "output_url": output_url,
-                "generation_time_seconds": generation_time
+                "generation_time_seconds": generation_time,
             }
 
         except Exception as e:
             logger.exception("Generation failed for job %s", job_id)
-            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            user_msg = (
+                str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            )
             self._update_db(job_id, "failed", 0, user_msg)
             return {"status": "error", "message": user_msg}
 
@@ -328,23 +332,27 @@ class VideoGenerator:
                 100,
                 "Video generated!",
                 output_url=output_url,
-                processing_time_ms=int(generation_time * 1000)
+                processing_time_ms=int(generation_time * 1000),
             )
 
             return {
                 "status": "success",
                 "job_id": job_id,
                 "output_url": output_url,
-                "generation_time_seconds": generation_time
+                "generation_time_seconds": generation_time,
             }
 
         except Exception as e:
             logger.exception("Generation failed for job %s", job_id)
-            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            user_msg = (
+                str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            )
             self._update_db(job_id, "failed", 0, user_msg)
             return {"status": "error", "message": user_msg}
 
-    def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+    def _update_db(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
         """Best-effort status update: retry once, then log (a status write must not fail the job)"""
         for attempt in (1, 2):
             try:
@@ -357,7 +365,9 @@ class VideoGenerator:
                     "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
                 )
 
-    def _update_db_once(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+    def _update_db_once(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -374,15 +384,15 @@ class VideoGenerator:
 
             # If status is failed, also update the error column
             if status == "failed":
-                query += ', error = %s'
+                query += ", error = %s"
                 params.append(message)
 
             if output_url:
-                query += ', output_url = %s'
+                query += ", output_url = %s"
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ', processing_time_ms = %s, completed_at = NOW()'
+                query += ", processing_time_ms = %s, completed_at = NOW()"
                 params.append(processing_time_ms)
 
             query += " WHERE id = %s"
@@ -395,6 +405,7 @@ class VideoGenerator:
         except Exception:
             raise
 
+
 @app.function()
 def health():
     return {
@@ -403,14 +414,15 @@ def health():
         "models": {"text2video": T2V_MODEL_ID, "img2video": I2V_MODEL_ID},
     }
 
+
 @app.function(
-    gpu="H100",
-    image=modal.Image.debian_slim(python_version="3.11").pip_install("torch==2.8.0")
+    gpu="H100", image=modal.Image.debian_slim(python_version="3.11").pip_install("torch==2.8.0")
 )
 def gpu_info():
     import torch
+
     return {
         "gpu": torch.cuda.get_device_name(0),
         "pytorch_version": torch.__version__,
-        "cuda_version": torch.version.cuda
+        "cuda_version": torch.version.cuda,
     }

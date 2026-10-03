@@ -104,7 +104,7 @@ class ImageGenerator:
                 height=params.get("height", 1024),
                 num_inference_steps=steps,
                 guidance_scale=0.0,
-                generator=torch.Generator("cuda").manual_seed(seed)
+                generator=torch.Generator("cuda").manual_seed(seed),
             ).images[0]
 
             generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -118,10 +118,10 @@ class ImageGenerator:
 
             # Upload to R2
             s3_client = boto3.client(
-                's3',
-                endpoint_url=f'https://{os.environ["R2_ACCOUNT_ID"]}.r2.cloudflarestorage.com',
+                "s3",
+                endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
                 aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-                aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"]
+                aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
             )
 
             # Organize by type and date: images/{yyyy-mm-dd}
@@ -131,11 +131,14 @@ class ImageGenerator:
                 output_path,
                 os.environ["R2_BUCKET_NAME"],
                 s3_key,
-                ExtraArgs={'ContentType': 'image/png'}
+                ExtraArgs={"ContentType": "image/png"},
             )
             os.remove(output_path)
 
-            public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            public_base = (
+                os.environ.get("R2_PUBLIC_URL")
+                or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            )
             output_url = f"{public_base}/{s3_key}"
 
             # Update DB: completed
@@ -145,14 +148,14 @@ class ImageGenerator:
                 100,
                 "Image generated!",
                 output_url=output_url,
-                processing_time_ms=int(generation_time * 1000)
+                processing_time_ms=int(generation_time * 1000),
             )
 
             return {
                 "status": "success",
                 "job_id": job_id,
                 "output_url": output_url,
-                "generation_time_seconds": generation_time
+                "generation_time_seconds": generation_time,
             }
 
         except Exception as e:
@@ -160,11 +163,15 @@ class ImageGenerator:
             logger.exception("Generation failed for job %s", job_id)
             if output_path and os.path.exists(output_path):
                 os.remove(output_path)
-            user_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            user_msg = (
+                str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            )
             self._update_db(job_id, "failed", 0, user_msg)
             return {"status": "error", "message": user_msg}
 
-    def _update_db(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+    def _update_db(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
         """Best-effort status update: retry once, then log (a status write must not fail the job)"""
         for attempt in (1, 2):
             try:
@@ -177,7 +184,9 @@ class ImageGenerator:
                     "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
                 )
 
-    def _update_db_once(self, job_id, status, progress, message, output_url=None, processing_time_ms=None):
+    def _update_db_once(
+        self, job_id, status, progress, message, output_url=None, processing_time_ms=None
+    ):
         """Update generation status in database (or skip if record doesn't exist)"""
         import psycopg2
         import os
@@ -194,15 +203,15 @@ class ImageGenerator:
 
             # If status is failed, also update the error column
             if status == "failed":
-                query += ', error = %s'
+                query += ", error = %s"
                 params.append(message)
 
             if output_url:
-                query += ', output_url = %s'
+                query += ", output_url = %s"
                 params.append(output_url)
 
             if processing_time_ms:
-                query += ', processing_time_ms = %s, completed_at = NOW()'
+                query += ", processing_time_ms = %s, completed_at = NOW()"
                 params.append(processing_time_ms)
 
             query += " WHERE id = %s"
@@ -215,15 +224,18 @@ class ImageGenerator:
         except Exception:
             raise
 
+
 @app.function()
 def health():
     return {"status": "healthy", "service": "image-generation", "model": MODEL_ID}
 
+
 @app.function(gpu="L40S")
 def gpu_info():
     import torch
+
     return {
         "gpu": torch.cuda.get_device_name(0),
         "pytorch_version": torch.__version__,
-        "cuda_version": torch.version.cuda
+        "cuda_version": torch.version.cuda,
     }

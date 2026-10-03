@@ -9,9 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def load(app_dir: str):
-    spec = importlib.util.spec_from_file_location(
-        f"{app_dir}_main", ROOT / app_dir / "main.py"
-    )
+    spec = importlib.util.spec_from_file_location(f"{app_dir}_main", ROOT / app_dir / "main.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

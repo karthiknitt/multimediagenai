@@ -5,6 +5,7 @@ import requests
 import time
 import json
 
+
 # Test text-to-video endpoint
 def test_text2video():
     url = "https://karthiknitt--video-generation-videogenerator-generate-te-dfe008.modal.run"
@@ -12,11 +13,7 @@ def test_text2video():
     payload = {
         "job_id": f"test-t2v-{int(time.time())}",
         "prompt": "A serene mountain landscape at sunrise with flowing water",
-        "parameters": {
-            "num_frames": 64,
-            "cfg_scale": 7.5,
-            "seed": 42
-        }
+        "parameters": {"num_frames": 64, "cfg_scale": 7.5, "seed": 42},
     }
 
     print(f"Testing text-to-video with job_id: {payload['job_id']}")
@@ -29,6 +26,7 @@ def test_text2video():
     print(f"Response body: {json.dumps(response.json(), indent=2)}")
 
     return response.json()
+
 
 if __name__ == "__main__":
     print("=" * 80)

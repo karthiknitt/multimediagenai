@@ -23,12 +23,14 @@ CLONE_MODEL = "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
 # Docker image with Qwen3-TTS dependencies
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .env({
-        "PYTHONIOENCODING": "utf-8",
-        "LC_ALL": "C.UTF-8",
-        "LANG": "C.UTF-8",
-        "HF_HOME": "/models/hf",  # model weights cached on the Modal volume
-    })
+    .env(
+        {
+            "PYTHONIOENCODING": "utf-8",
+            "LC_ALL": "C.UTF-8",
+            "LANG": "C.UTF-8",
+            "HF_HOME": "/models/hf",  # model weights cached on the Modal volume
+        }
+    )
     .apt_install("git", "ffmpeg", "sox", "libsox-fmt-all", "libsndfile1")
     .pip_install(
         "torch==2.8.0",
@@ -48,15 +50,51 @@ image = (
 
 # Voice preset definitions (Qwen3-TTS CustomVoice speakers)
 VOICE_PRESETS = {
-    "ryan": {"speaker": "Ryan", "language": "en", "description": "Dynamic male voice with strong rhythmic drive"},
-    "aiden": {"speaker": "Aiden", "language": "en", "description": "Sunny American male voice with a clear midrange"},
-    "vivian": {"speaker": "Vivian", "language": "zh", "description": "Bright, slightly edgy young female voice"},
-    "serena": {"speaker": "Serena", "language": "zh", "description": "Warm, gentle young female voice"},
-    "uncle_fu": {"speaker": "Uncle_Fu", "language": "zh", "description": "Seasoned male voice with a low, mellow timbre"},
-    "dylan": {"speaker": "Dylan", "language": "zh", "description": "Youthful Beijing male voice (Beijing dialect)"},
-    "eric": {"speaker": "Eric", "language": "zh", "description": "Lively Chengdu male voice (Sichuan dialect)"},
-    "ono_anna": {"speaker": "Ono_Anna", "language": "ja", "description": "Playful Japanese female voice"},
-    "sohee": {"speaker": "Sohee", "language": "ko", "description": "Warm Korean female voice with rich emotion"},
+    "ryan": {
+        "speaker": "Ryan",
+        "language": "en",
+        "description": "Dynamic male voice with strong rhythmic drive",
+    },
+    "aiden": {
+        "speaker": "Aiden",
+        "language": "en",
+        "description": "Sunny American male voice with a clear midrange",
+    },
+    "vivian": {
+        "speaker": "Vivian",
+        "language": "zh",
+        "description": "Bright, slightly edgy young female voice",
+    },
+    "serena": {
+        "speaker": "Serena",
+        "language": "zh",
+        "description": "Warm, gentle young female voice",
+    },
+    "uncle_fu": {
+        "speaker": "Uncle_Fu",
+        "language": "zh",
+        "description": "Seasoned male voice with a low, mellow timbre",
+    },
+    "dylan": {
+        "speaker": "Dylan",
+        "language": "zh",
+        "description": "Youthful Beijing male voice (Beijing dialect)",
+    },
+    "eric": {
+        "speaker": "Eric",
+        "language": "zh",
+        "description": "Lively Chengdu male voice (Sichuan dialect)",
+    },
+    "ono_anna": {
+        "speaker": "Ono_Anna",
+        "language": "ja",
+        "description": "Playful Japanese female voice",
+    },
+    "sohee": {
+        "speaker": "Sohee",
+        "language": "ko",
+        "description": "Warm Korean female voice with rich emotion",
+    },
 }
 DEFAULT_PRESET = "ryan"
 
@@ -74,6 +112,7 @@ LANGUAGES = {
     "it": "Italian",
 }
 
+
 # Pydantic models for request/response
 @dataclass
 class TTSRequest:
@@ -85,6 +124,7 @@ class TTSRequest:
     speed: float = 1.0
     emotion: Optional[str] = None  # free-text style instruction, e.g. "Very happy."
 
+
 @dataclass
 class TTSResponse:
     job_id: str
@@ -92,7 +132,6 @@ class TTSResponse:
     processing_time_ms: int
     output_url: Optional[str] = None
     error: Optional[str] = None
-
 
 
 MAX_FETCH_BYTES = 10 * 1024 * 1024
@@ -133,6 +172,7 @@ def fetch_r2_bytes(url: str, timeout: int = 30) -> bytes:
             if len(data) > MAX_FETCH_BYTES:
                 raise ValueError("Downloaded file exceeds size limit")
         return bytes(data)
+
 
 @app.function(
     image=image,
@@ -181,14 +221,14 @@ class TTSGenerator:
 
         # R2 credentials
         self.r2_client = boto3.client(
-            's3',
+            "s3",
             endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
-            aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
-            aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
-            config=Config(signature_version='s3v4'),
-            region_name='auto',
+            aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+            config=Config(signature_version="s3v4"),
+            region_name="auto",
         )
-        self.r2_bucket = os.environ['R2_BUCKET_NAME']
+        self.r2_bucket = os.environ["R2_BUCKET_NAME"]
 
         print(f"Qwen3-TTS service ready on {self.device}")
 
@@ -216,18 +256,39 @@ class TTSGenerator:
             self.clone_model = self._load(CLONE_MODEL)
         return self.clone_model
 
-    def update_db_status(self, job_id: str, status: str, progress: int = 0, error: str = None, output_url: str = None, processing_time_ms: int = None):
+    def update_db_status(
+        self,
+        job_id: str,
+        status: str,
+        progress: int = 0,
+        error: str = None,
+        output_url: str = None,
+        processing_time_ms: int = None,
+    ):
         """Best-effort status update: retry once, then log (a status write must not fail the job)"""
         for attempt in (1, 2):
             try:
-                self._update_db_status_once(job_id, status, progress, error, output_url, processing_time_ms)
+                self._update_db_status_once(
+                    job_id, status, progress, error, output_url, processing_time_ms
+                )
                 return
             except Exception:
-                logger.warning("DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True)
+                logger.warning(
+                    "DB update failed for job %s (attempt %d)", job_id, attempt, exc_info=True
+                )
 
-    def _update_db_status_once(self, job_id: str, status: str, progress: int = 0, error: str = None, output_url: str = None, processing_time_ms: int = None):
+    def _update_db_status_once(
+        self,
+        job_id: str,
+        status: str,
+        progress: int = 0,
+        error: str = None,
+        output_url: str = None,
+        processing_time_ms: int = None,
+    ):
         """Update generation status in database (raises on failure)"""
         import psycopg2
+
         try:
             conn = psycopg2.connect(self.database_url)
             cur = conn.cursor()
@@ -236,7 +297,7 @@ class TTSGenerator:
                 # Update progress
                 cur.execute(
                     "UPDATE generations SET status = %s, progress = %s WHERE id = %s",
-                    (status, progress, job_id)
+                    (status, progress, job_id),
                 )
             elif status == "completed":
                 # Update completion with URL
@@ -244,13 +305,13 @@ class TTSGenerator:
                     """UPDATE generations
                        SET status = %s, output_url = %s, processing_time_ms = %s, completed_at = NOW()
                        WHERE id = %s""",
-                    (status, output_url, processing_time_ms, job_id)
+                    (status, output_url, processing_time_ms, job_id),
                 )
             elif status == "failed":
                 # Update failure with error
                 cur.execute(
                     "UPDATE generations SET status = %s, error = %s WHERE id = %s",
-                    (status, error, job_id)
+                    (status, error, job_id),
                 )
 
             conn.commit()
@@ -264,6 +325,7 @@ class TTSGenerator:
         try:
             # Create date-based path (audio folder with speech prefix)
             from datetime import timezone
+
             date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             key = f"audio/{date_str}/speech-{job_id}.wav"
 
@@ -272,11 +334,14 @@ class TTSGenerator:
                 Bucket=self.r2_bucket,
                 Key=key,
                 Body=audio_data,
-                ContentType='audio/wav',
+                ContentType="audio/wav",
             )
 
             # Generate public URL
-            public_base = os.environ.get("R2_PUBLIC_URL") or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            public_base = (
+                os.environ.get("R2_PUBLIC_URL")
+                or f"https://pub-{os.environ['R2_ACCOUNT_ID']}.r2.dev"
+            )
             return f"{public_base}/{key}"
         except Exception as e:
             print(f"R2 upload error: {e}")
@@ -347,11 +412,12 @@ class TTSGenerator:
         # Qwen3-TTS has no native speed control - time-stretch the result
         if abs(speed - 1.0) > 0.01:
             import librosa
+
             audio_array = librosa.effects.time_stretch(audio_array, rate=float(speed))
 
         # Convert to WAV bytes
         buffer = io.BytesIO()
-        sf.write(buffer, audio_array, sample_rate, format='WAV')
+        sf.write(buffer, audio_array, sample_rate, format="WAV")
         buffer.seek(0)
 
         return buffer.read()
@@ -360,9 +426,13 @@ class TTSGenerator:
     def generate(self, payload: dict) -> dict:
         """Main TTS generation endpoint"""
         start_time = time.time()
-        request = TTSRequest(**{
-            k: v for k, v in payload.items() if k in TTSRequest.__dataclass_fields__ and v is not None
-        })
+        request = TTSRequest(
+            **{
+                k: v
+                for k, v in payload.items()
+                if k in TTSRequest.__dataclass_fields__ and v is not None
+            }
+        )
 
         try:
             # Update status to processing (0%)
@@ -392,29 +462,35 @@ class TTSGenerator:
                 request.job_id,
                 "completed",
                 output_url=output_url,
-                processing_time_ms=processing_time_ms
+                processing_time_ms=processing_time_ms,
             )
 
-            return asdict(TTSResponse(
-                job_id=request.job_id,
-                status="completed",
-                output_url=output_url,
-                processing_time_ms=processing_time_ms
-            ))
+            return asdict(
+                TTSResponse(
+                    job_id=request.job_id,
+                    status="completed",
+                    output_url=output_url,
+                    processing_time_ms=processing_time_ms,
+                )
+            )
 
         except Exception as e:
             logger.exception("TTS generation failed for job %s", request.job_id)
-            error_msg = str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            error_msg = (
+                str(e) if isinstance(e, ValueError) else "Generation failed. Please try again."
+            )
 
             # Update status to failed
             self.update_db_status(request.job_id, "failed", error=error_msg)
 
-            return asdict(TTSResponse(
-                job_id=request.job_id,
-                status="failed",
-                error=error_msg,
-                processing_time_ms=int((time.time() - start_time) * 1000)
-            ))
+            return asdict(
+                TTSResponse(
+                    job_id=request.job_id,
+                    status="failed",
+                    error=error_msg,
+                    processing_time_ms=int((time.time() - start_time) * 1000),
+                )
+            )
 
 
 @app.function()
@@ -422,11 +498,7 @@ def list_voice_presets():
     """List available voice presets"""
     return {
         "presets": [
-            {
-                "id": key,
-                "description": preset["description"],
-                "language": preset["language"]
-            }
+            {"id": key, "description": preset["description"], "language": preset["language"]}
             for key, preset in VOICE_PRESETS.items()
         ]
     }
