@@ -47,7 +47,7 @@ cd frontend
 bun install
 bun run dev          # run via PM2 on this machine (port 3060, Tailscale-only)
 bun test             # lib/*.test.ts
-bunx tsc --noEmit
+bunx tsc --noEmit --pretty false   # TS 7: use --pretty false when grepping output
 bun run lint         # biome; pre-commit hook runs this
 ```
 
@@ -56,6 +56,7 @@ Dev loop after UI changes: serve with `/portless`, verify with `/agent-browser`.
 ## Working rules for this repo
 
 - Never commit secrets; docs use placeholders (`DATABASE_URL=postgresql://<user>:<password>@<host>/db`).
+- Auth schema changes: better-auth expects specific tables/columns (see `frontend/db/schema.ts`); a mismatch is logged as `Drizzle schema mismatch` at build time. Apply new drizzle migrations to Neon before deploying a build that needs them.
 - `frontend/lib/` is matched by a gitignore pattern: use `git add -f` for **new** files there.
 - Keep new generation parameters in sync across three places: Zod schema (`frontend/lib/validation.ts` or the route), the Modal payload, and the backend `params.get(...)`.
 - Models were swapped on 2026-10 (FLUX/Mochi/CogVideoX/MusicGen/F5-TTS removed). Old status docs in `docs/archive/` describe the previous stack.

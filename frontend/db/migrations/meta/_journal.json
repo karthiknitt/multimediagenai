@@ -8,6 +8,13 @@
       "when": 1766760342347,
       "tag": "0000_old_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791021808102,
+      "tag": "0001_better_auth_1_7",
+      "breakpoints": true
     }
   ]
 }
