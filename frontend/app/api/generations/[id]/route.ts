@@ -1,9 +1,20 @@
+import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { objectKeyFromUrl } from "@/lib/r2-keys";
+
+const r2Client = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -69,13 +80,26 @@ export async function DELETE(
     const result = await db
       .delete(generations)
       .where(and(eq(generations.id, id), eq(generations.userId, session.user.id)))
-      .returning({ id: generations.id });
+      .returning({ id: generations.id, outputUrl: generations.outputUrl });
 
     if (result.length === 0) {
       return NextResponse.json({ error: "Generation not found" }, { status: 404 });
     }
 
-    // TODO: Delete file from R2 if exists
+    // Remove the stored file too (best effort: the row is already gone)
+    const outputUrl = result[0].outputUrl;
+    if (outputUrl) {
+      try {
+        await r2Client.send(
+          new DeleteObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME!,
+            Key: objectKeyFromUrl(outputUrl),
+          }),
+        );
+      } catch (error) {
+        console.error(`R2 delete failed for generation ${id}:`, error);
+      }
+    }
 
     return NextResponse.json({
       message: "Generation deleted successfully",
