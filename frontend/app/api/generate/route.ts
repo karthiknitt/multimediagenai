@@ -11,7 +11,7 @@ const generateRequestSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("image"),
     prompt: z.string().min(3).max(2000),
-    model: z.enum(["flux2-dev", "flux2-schnell"]),
+    model: z.enum(["z-image-turbo"]),
     steps: z.number().min(1).max(100).default(30),
     cfgScale: z.number().min(1).max(20).default(7),
     width: z.number().min(256).max(2048).default(1024),
@@ -22,7 +22,7 @@ const generateRequestSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("video"),
     prompt: z.string().min(3).max(2000),
-    model: z.enum(["mochi", "cogvideox"]),
+    model: z.enum(["wan22-t2v", "wan22-i2v"]),
     variant: z.enum(["text2video", "img2video"]),
     duration: z.number().min(1).max(10).default(5),
     fps: z.number().min(15).max(30).default(30),
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     } else if (data.type === "video") {
       modelName = data.model;
     } else {
-      modelName = "musicgen-large";
+      modelName = "ace-step-1.5";
     }
 
     // TODO: Check rate limits

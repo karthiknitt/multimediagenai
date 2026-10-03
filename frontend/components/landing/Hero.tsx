@@ -22,7 +22,7 @@ export function Hero() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
             </span>
-            <span className="text-foreground/90">Powered by FLUX.2 · Mochi · CogVideoX · MusicGen</span>
+            <span className="text-foreground/90">Powered by Z-Image · Wan2.2 · ACE-Step · Qwen3-TTS</span>
           </div>
 
           {/* Main Headline with Dramatic Typography */}
@@ -114,7 +114,7 @@ export function Hero() {
                       <Sparkles className="h-8 w-8 text-cyan-400" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">AI Images</h3>
-                    <p className="text-sm text-foreground/60">FLUX.2 · Up to 4MP</p>
+                    <p className="text-sm text-foreground/60">Z-Image Turbo · Up to 4MP</p>
                   </div>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -128,7 +128,7 @@ export function Hero() {
                       <Film className="h-8 w-8 text-magenta-400" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">AI Videos</h3>
-                    <p className="text-sm text-foreground/60">Mochi · 5.4s @ 30fps</p>
+                    <p className="text-sm text-foreground/60">Wan2.2 · 5s @ 16fps</p>
                   </div>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -142,7 +142,7 @@ export function Hero() {
                       <Play className="h-8 w-8 text-blue-400" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">AI Audio</h3>
-                    <p className="text-sm text-foreground/60">MusicGen · 32kHz</p>
+                    <p className="text-sm text-foreground/60">ACE-Step · 48kHz stereo</p>
                   </div>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

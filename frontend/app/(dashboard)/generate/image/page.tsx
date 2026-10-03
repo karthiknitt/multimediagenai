@@ -53,9 +53,9 @@ export default function ImageGenerationPage() {
   });
 
   const prompt = watch("prompt") ?? "";
-  const model = watch("model") ?? "flux2-dev";
-  const steps = watch("steps") ?? 30;
-  const cfgScale = watch("cfgScale") ?? 7;
+  const model = watch("model") ?? "z-image-turbo";
+  const steps = watch("steps") ?? 9;
+  const cfgScale = watch("cfgScale") ?? 0;
   const width = watch("width") ?? 1024;
   const height = watch("height") ?? 1024;
   const seed = watch("seed");
@@ -64,9 +64,7 @@ export default function ImageGenerationPage() {
   // Update parameters when model changes
   useEffect(() => {
     const modelDefaults = {
-      "flux1-dev": { steps: 20, cfgScale: 3.5 },
-      "flux2-dev": { steps: 28, cfgScale: 4.0 },
-      "flux2-schnell": { steps: 4, cfgScale: 2.0 },
+      "z-image-turbo": { steps: 9, cfgScale: 0 },
     };
 
     const defaults = modelDefaults[model as keyof typeof modelDefaults];
@@ -103,9 +101,9 @@ export default function ImageGenerationPage() {
       // Create params object with required fields
       const params: ImageParams = {
         prompt: data.prompt,
-        model: data.model,
-        steps: data.steps ?? 30,
-        cfgScale: data.cfgScale ?? 7,
+        model: data.model ?? "z-image-turbo",
+        steps: data.steps ?? 9,
+        cfgScale: data.cfgScale ?? 0,
         width: data.width ?? 1024,
         height: data.height ?? 1024,
         seed: data.seed,
@@ -195,7 +193,7 @@ export default function ImageGenerationPage() {
         <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">Model</h3>
         <ModelSelector
           value={model}
-          onChange={(value) => setValue("model", value as "flux1-dev" | "flux2-dev" | "flux2-schnell")}
+          onChange={(value) => setValue("model", value as "z-image-turbo")}
           models={imageModels}
           disabled={isGenerating}
         />
@@ -281,7 +279,7 @@ export default function ImageGenerationPage() {
           <span className="gradient-text">Image Generation</span>
         </h1>
         <p className="text-foreground/60 text-lg">
-          Create stunning images from text descriptions using FLUX models
+          Create stunning images from text descriptions using Z-Image-Turbo
         </p>
       </header>
 

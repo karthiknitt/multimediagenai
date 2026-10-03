@@ -83,7 +83,7 @@ export function Pricing() {
             Choose Your <span className="gradient-text">Plan</span>
           </h2>
           <p className="mx-auto max-w-2xl text-xl text-foreground/70 leading-relaxed">
-            Start free, upgrade anytime. All plans include access to FLUX.2, Mochi, CogVideoX, and MusicGen.
+            Start free, upgrade anytime. All plans include access to Z-Image, Wan2.2, ACE-Step, and Qwen3-TTS.
           </p>
         </div>
 

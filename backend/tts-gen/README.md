@@ -1,15 +1,14 @@
-# TTS Generation Service (F5-TTS)
+# TTS Generation Service (Qwen3-TTS)
 
-Text-to-speech generation service using F5-TTS on Modal A10G GPU.
+Text-to-speech generation service using Qwen3-TTS (Apache-2.0) on a Modal A10G GPU.
 
 ## Features
 
-- State-of-the-art F5-TTS model (Jan 2025)
-- Voice cloning with 3-10s reference audio
-- Multi-language support (English priority)
-- Speed control (0.8x - 1.5x)
-- Low VRAM (6-8GB on A10G)
-- Fast inference (~4-6s for 30s audio)
+- Qwen3-TTS 1.7B: 9 preset speakers (CustomVoice) with natural-language style control
+- Voice cloning from a 3-10s reference clip (Base model, speaker-embedding mode)
+- 10 languages (en, zh, ja, ko, de, fr, ru, pt, es, it)
+- Speed control via time-stretch (0.5x - 2.0x)
+- Low VRAM (~4GB per model)
 
 ## Deployment
 
@@ -33,7 +32,7 @@ modal deploy main.py
 modal run main.py::download_models
 ```
 
-This will download F5-TTS models (~8GB) to the Modal Volume `tts-models`.
+This will download the Qwen3-TTS CustomVoice and Base models to the Modal Volume `qwen3tts-models`.
 
 ## API Endpoint
 
@@ -46,7 +45,8 @@ Generate speech from text.
 {
   "job_id": "uuid-string",
   "text": "Text to convert to speech (max 500 chars)",
-  "voice_reference_url": "https://r2-url/voice-sample.wav",  // optional
+  "voice_preset": "ryan",  // ryan|aiden|vivian|serena|uncle_fu|dylan|eric|ono_anna|sohee
+  "voice_reference_url": "https://r2-url/voice-sample.wav",  // optional: clones this voice instead
   "language": "en",  // default: "en"
   "speed": 1.0  // 0.8 - 1.5
 }

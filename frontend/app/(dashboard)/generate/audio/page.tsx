@@ -34,9 +34,16 @@ type FormData = z.input<typeof audioGenerationSchema>;
 
 // Voice preset options
 const VOICE_PRESETS = [
-  { id: "basic_en", label: "English (Basic)", language: "en" },
-  { id: "basic_zh", label: "Chinese (Basic)", language: "zh" },
-  { id: "custom", label: "Custom Voice URL", language: "en" },
+  { id: "ryan", label: "Ryan - dynamic male (English)", language: "en" },
+  { id: "aiden", label: "Aiden - sunny American male (English)", language: "en" },
+  { id: "vivian", label: "Vivian - bright young female (Chinese)", language: "zh" },
+  { id: "serena", label: "Serena - warm gentle female (Chinese)", language: "zh" },
+  { id: "uncle_fu", label: "Uncle Fu - mellow male (Chinese)", language: "zh" },
+  { id: "dylan", label: "Dylan - Beijing male (Chinese)", language: "zh" },
+  { id: "eric", label: "Eric - Chengdu male (Chinese)", language: "zh" },
+  { id: "ono_anna", label: "Ono Anna - playful female (Japanese)", language: "ja" },
+  { id: "sohee", label: "Sohee - warm female (Korean)", language: "ko" },
+  { id: "custom", label: "Custom Voice URL (clone)", language: "en" },
 ] as const;
 
 export default function AudioGenerationPage() {
@@ -63,7 +70,7 @@ export default function AudioGenerationPage() {
       duration: audioParams.duration,
       guidanceScale: audioParams.guidanceScale,
       text: audioParams.text,
-      voicePreset: audioParams.voicePreset || "basic_en",
+      voicePreset: audioParams.voicePreset || "ryan",
       voiceReferenceUrl: audioParams.voiceReferenceUrl,
       language: audioParams.language,
       speed: audioParams.speed,
@@ -73,8 +80,7 @@ export default function AudioGenerationPage() {
   const prompt = watch("prompt") ?? "";
   const text = watch("text") ?? "";
   const duration = watch("duration") ?? 30;
-  const guidanceScale = watch("guidanceScale") ?? 3.0;
-  const voicePreset = watch("voicePreset") ?? "basic_en";
+  const voicePreset = watch("voicePreset") ?? "ryan";
   const voiceReferenceUrl = watch("voiceReferenceUrl");
   const language = watch("language") ?? "en";
   const speed = watch("speed") ?? 1.0;
@@ -135,7 +141,7 @@ export default function AudioGenerationPage() {
       setAudioParams(params);
 
       // Start generation
-      const result = await generateMutation.mutateAsync(data);
+      const result = await generateMutation.mutateAsync(audioGenerationSchema.parse(data));
 
       // Track the job
       const jobId = result.jobId;
@@ -222,8 +228,8 @@ export default function AudioGenerationPage() {
         </Tabs>
         <p className="mt-2 text-xs text-foreground/60">
           {variant === "music"
-            ? "Generate music from text description using MusicGen"
-            : "Convert text to speech using F5-TTS with voice cloning"}
+            ? "Generate music from text description using ACE-Step 1.5"
+            : "Convert text to speech using Qwen3-TTS with voice cloning"}
         </p>
       </div>
 
@@ -239,36 +245,16 @@ export default function AudioGenerationPage() {
                 <span className="text-sm text-foreground/60 mono">{duration}s</span>
               </div>
               <Slider
-                value={[duration]}
-                onValueChange={(value) => setValue("duration", value[0])}
-                min={5}
+                value={duration}
+                onValueChange={(value) => setValue("duration", value)}
+                min={10}
                 max={60}
                 step={5}
                 disabled={isGenerating}
                 className="w-full"
               />
               <p className="text-xs text-foreground/50">
-                Length of generated audio (5-60 seconds)
-              </p>
-            </div>
-
-            {/* Guidance Scale */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Guidance Scale</Label>
-                <span className="text-sm text-foreground/60 mono">{guidanceScale.toFixed(1)}</span>
-              </div>
-              <Slider
-                value={[guidanceScale]}
-                onValueChange={(value) => setValue("guidanceScale", value[0])}
-                min={1}
-                max={20}
-                step={0.5}
-                disabled={isGenerating}
-                className="w-full"
-              />
-              <p className="text-xs text-foreground/50">
-                Higher = more prompt adherence
+                Length of generated audio (10-60 seconds)
               </p>
             </div>
           </>
@@ -279,7 +265,13 @@ export default function AudioGenerationPage() {
               <Label className="text-sm font-medium">Voice Preset</Label>
               <Select
                 value={voicePreset}
-                onValueChange={(value) => setValue("voicePreset", value as typeof voicePreset)}
+                onValueChange={(value) => {
+                  setValue("voicePreset", value as typeof voicePreset);
+                  const preset = VOICE_PRESETS.find((p) => p.id === value);
+                  if (preset && value !== "custom") {
+                    setValue("language", preset.language);
+                  }
+                }}
                 disabled={isGenerating}
               >
                 <SelectTrigger>
@@ -310,7 +302,7 @@ export default function AudioGenerationPage() {
                   disabled={isGenerating}
                 />
                 <p className="text-xs text-foreground/50">
-                  Provide a 5-10s WAV file for voice cloning
+                  Provide a clean 3-10s voice clip (WAV/MP3) for voice cloning
                 </p>
               </div>
             )}
@@ -322,8 +314,8 @@ export default function AudioGenerationPage() {
                 <span className="text-sm text-foreground/60 mono">{speed.toFixed(1)}x</span>
               </div>
               <Slider
-                value={[speed]}
-                onValueChange={(value) => setValue("speed", value[0])}
+                value={speed}
+                onValueChange={(value) => setValue("speed", value)}
                 min={0.5}
                 max={2.0}
                 step={0.1}

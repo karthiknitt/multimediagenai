@@ -6,7 +6,7 @@ const features = [
     icon: Image,
     title: "Image Generation",
     description:
-      "Create photorealistic images from text using FLUX.2 dev, the most advanced open-source image model.",
+      "Create photorealistic images from text using Z-Image-Turbo, a fast, open-source (Apache-2.0) image model.",
     features: [
       "4MP resolution output",
       "Photorealistic or artistic",
@@ -23,10 +23,10 @@ const features = [
     icon: Video,
     title: "Video Generation",
     description:
-      "Generate cinematic video clips from text prompts or animate your images with Mochi & CogVideoX.",
+      "Generate cinematic video clips from text prompts or animate your images with Wan2.2.",
     features: [
-      "Text-to-video (Mochi)",
-      "Image-to-video (CogVideoX)",
+      "Text-to-video (Wan2.2)",
+      "Image-to-video (Wan2.2)",
       "5.4s @ 30fps, 480p",
       "Smooth motion synthesis",
       "Temporal consistency",
@@ -39,7 +39,7 @@ const features = [
     icon: Music,
     title: "Audio Generation",
     description:
-      "Compose royalty-free music and sound effects with MusicGen. Perfect soundtracks in seconds.",
+      "Compose royalty-free full songs and music with ACE-Step 1.5. Perfect soundtracks in seconds.",
     features: [
       "Up to 30s audio clips",
       "Multiple genres & moods",

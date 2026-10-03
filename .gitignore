@@ -347,3 +347,6 @@ backend/*/cache/
 # Archive and docs
 archive/
 docs/
+# Python
+__pycache__/
+*.pyc

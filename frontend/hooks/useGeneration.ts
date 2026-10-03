@@ -6,7 +6,7 @@ import type { ImageGenerationInput, VideoGenerationInput, AudioGenerationInput }
 // Types for API responses
 export interface GenerationResponse {
   id: string;
-  type: "image" | "video" | "audio";
+  type: "image" | "video" | "audio" | "speech";
   status: "pending" | "processing" | "completed" | "failed";
   prompt: string;
   model: string;
@@ -30,7 +30,7 @@ export interface PaginatedGenerations {
 async function fetchGenerations(
   page: number = 1,
   pageSize: number = 20,
-  type?: "image" | "video" | "audio"
+  type?: "image" | "video" | "audio" | "speech"
 ): Promise<PaginatedGenerations> {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -114,7 +114,7 @@ async function deleteGeneration(id: string): Promise<void> {
 export function useGenerations(
   page: number = 1,
   pageSize: number = 20,
-  type?: "image" | "video" | "audio"
+  type?: "image" | "video" | "audio" | "speech"
 ) {
   return useQuery({
     queryKey: ["generations", page, pageSize, type],

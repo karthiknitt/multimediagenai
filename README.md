@@ -28,7 +28,7 @@ Enterprise-grade AI-powered image, video, and audio generation platform with pro
 ### ✅ Phase 1B: Modal Backend (Complete - Ready to Deploy)
 - [x] Modal app with A100 80GB GPU
 - [x] ComfyUI integration (headless)
-- [x] FLUX.2 model support (FP8 quantized)
+- [x] Z-Image-Turbo image generation
 - [x] FastAPI endpoints
 - [x] R2 storage integration
 - [x] Inngest event emission
@@ -45,12 +45,12 @@ Enterprise-grade AI-powered image, video, and audio generation platform with pro
 - [ ] Gallery functionality
 
 ### 🔜 Phase 1D: Video Generation (Week 3)
-- [ ] Mochi text-to-video
-- [ ] CogVideoX image-to-video
+- [x] Wan2.2 text-to-video
+- [x] Wan2.2 image-to-video
 - [ ] Video player components
 
 ### 🔜 Phase 1E: Audio + Gallery (Week 3-4)
-- [ ] MusicGen audio generation
+- [x] ACE-Step music generation
 - [ ] Complete gallery with filters
 
 ### 🔜 Phase 1F: Polish + Deploy (Week 4)
@@ -84,13 +84,13 @@ Enterprise-grade AI-powered image, video, and audio generation platform with pro
                 │                    │
                 ▼                    ▼
     ┌───────────────────┐   ┌───────────────────┐
-    │   Neon Database   │   │  Modal (A100 GPU)  │
+    │   Neon Database   │   │  Modal GPUs          │
     │   (PostgreSQL)    │   │                    │
-    │  • Users          │   │  • ComfyUI         │
-    │  • Sessions       │   │  • FLUX.2 (FP8)    │
-    │  • Generations    │   │  • Mochi           │
-    │  • Presets        │   │  • CogVideoX       │
-    └───────────────────┘   │  • MusicGen        │
+    │  • Users          │   │  • Diffusers       │
+    │  • Sessions       │   │  • Z-Image-Turbo   │
+    │  • Generations    │   │  • Wan2.2 T2V      │
+    │  • Presets        │   │  • Wan2.2 I2V      │
+    └───────────────────┘   │  • ACE-Step/Qwen3  │
                             └───────────────────┘
                                       │
                                       ▼
@@ -131,8 +131,31 @@ Enterprise-grade AI-powered image, video, and audio generation platform with pro
 
 ## 🤖 AI Models
 
-| Model | Type | VRAM | Output | Repository |
-|-------|------|------|--------|------------|
+| Model | Type | License | Output | Repository |
+|-------|------|---------|--------|------------|
+| **Z-Image-Turbo** | Image | Apache-2.0 | 1-2MP images, 8-step | `Tongyi-MAI/Z-Image-Turbo` |
+| **Wan2.2 T2V-A14B** | Text→Video | Apache-2.0 | 480p, 5s @ 16fps | `Wan-AI/Wan2.2-T2V-A14B-Diffusers` |
+| **Wan2.2 I2V-A14B** | Image→Video | Apache-2.0 | 480p, 5s @ 16fps | `Wan-AI/Wan2.2-I2V-A14B-Diffusers` |
+| **ACE-Step 1.5** | Music | MIT | 48kHz stereo songs | `ACE-Step/Ace-Step1.5` |
+| **Qwen3-TTS 1.7B** | Speech | Apache-2.0 | 9 preset voices + voice cloning | `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`, `...-Base` |
+
+**Modal services** (one app each, weights cached on a per-service Modal Volume):
+
+| Service dir | Modal app | Volume | GPU | Frontend env var |
+|-------------|-----------|--------|-----|------------------|
+| `backend/image-gen` | `image-generation` | `zimage-models` | L40S | `IMAGE_GEN_API_URL` |
+| `backend/video-gen` | `video-generation` | `wan22-models` | H100 | `VIDEO_GEN_TEXT2VIDEO_API_URL`, `VIDEO_GEN_IMG2VIDEO_API_URL` |
+| `backend/audio-gen` | `audio-generation` | `acestep-models` | L40S | `AUDIO_GEN_API_URL` |
+| `backend/tts-gen` | `tts-generation` | `qwen3tts-models` | A10G | `TTS_GEN_API_URL` |
+
+```bash
+cd backend/<service> && modal run main.py::download_models   # once: cache weights on the volume
+modal deploy main.py                                         # prints the endpoint URL(s) for the env vars above
+```
+
+All five models are public (no Hugging Face token needed).
+
+-------|------|------|--------|------------|
 | **FLUX.2 dev** | Image | 12GB (FP8) | 4MP images | `black-forest-labs/FLUX.2-dev` |
 | **Mochi 1** | Video | 8-18GB | 5.4s @ 30fps | `genmo/mochi-1-preview` |
 | **CogVideoX-5B** | Video | 12GB | Image→Video | `THUDM/CogVideoX-5b` |

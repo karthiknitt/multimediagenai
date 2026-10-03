@@ -5,55 +5,68 @@ from datetime import datetime, timezone
 
 # Modal setup
 app = modal.App("image-generation")
-volume = modal.Volume.from_name("flux-models", create_if_missing=True)
+volume = modal.Volume.from_name("zimage-models", create_if_missing=True)
+
+MODEL_ID = "Tongyi-MAI/Z-Image-Turbo"
 
 # Secrets
 r2_secret = modal.Secret.from_name("r2-credentials")
 db_secret = modal.Secret.from_name("database-credentials")
-hf_secret = modal.Secret.from_name("hf-token")
+
+image = modal.Image.debian_slim(python_version="3.11").pip_install(
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "diffusers==0.36.0",
+    "transformers==4.57.3",
+    "accelerate==1.12.0",
+    "sentencepiece==0.2.0",
+    "protobuf==5.29.2",
+    "boto3==1.35.80",
+    "psycopg2-binary==2.9.10",
+    "fastapi==0.115.6",
+    "huggingface_hub>=0.34.0",
+)
+
+
+@app.function(
+    image=image,
+    volumes={"/models": volume},
+    timeout=1800,
+)
+def download_models():
+    """Download Z-Image-Turbo to the Modal volume (run once)"""
+    from huggingface_hub import snapshot_download
+
+    print(f"Downloading {MODEL_ID}...")
+    snapshot_download(MODEL_ID, cache_dir="/models")
+    volume.commit()
+    print("Z-Image-Turbo downloaded")
+    return True
+
 
 @app.cls(
-    gpu="A100-80GB",
+    gpu="L40S",  # Z-Image-Turbo is 6B: ~25GB with bf16 + text encoder, fits 48GB
     timeout=300,  # 5 min max for images
     scaledown_window=300,  # Keep warm 5 min
     volumes={"/models": volume},
-    secrets=[r2_secret, db_secret, hf_secret],
-    image=modal.Image.debian_slim(python_version="3.11").pip_install(
-        "torch==2.5.1",
-        "torchvision==0.20.1",
-        "diffusers==0.32.1",
-        "transformers==4.46.3",
-        "accelerate==1.2.1",
-        "sentencepiece==0.2.0",
-        "protobuf==5.29.2",
-        "boto3==1.35.80",
-        "psycopg2-binary==2.9.10",
-        "fastapi==0.115.6"
-    )
+    secrets=[r2_secret, db_secret],  # Z-Image-Turbo is public: no HF token needed
+    image=image,
 )
 class ImageGenerator:
     @modal.enter()
-    def load_flux2(self):
-        """Load FLUX.2 model once on container start"""
-        from diffusers import FluxPipeline
+    def load_model(self):
+        """Load Z-Image-Turbo once on container start"""
+        from diffusers import ZImagePipeline
         import torch
 
-        print("Loading FLUX.1 model...")
-        import os
-
-        # Get HuggingFace token from environment
-        hf_token = os.environ.get("HF_TOKEN")
-        if not hf_token:
-            raise ValueError("HF_TOKEN environment variable is required for FLUX.1-dev")
-
-        self.pipe = FluxPipeline.from_pretrained(
-            "black-forest-labs/FLUX.1-dev",
+        print(f"Loading {MODEL_ID}...")
+        self.pipe = ZImagePipeline.from_pretrained(
+            MODEL_ID,
             torch_dtype=torch.bfloat16,
             cache_dir="/models",
-            token=hf_token
         )
         self.pipe.to("cuda")
-        print("FLUX.1 loaded successfully!")
+        print("Z-Image-Turbo loaded successfully!")
 
     @modal.fastapi_endpoint(method="POST")
     def generate(self, request: dict):
@@ -71,18 +84,25 @@ class ImageGenerator:
 
         try:
             # Update DB: processing
-            self._update_db(job_id, "processing", 25, "Generating image...")
+            self._update_db(job_id, "processing", 25, "Generating image with Z-Image-Turbo...")
 
             # Generate image
             start_time = datetime.now(timezone.utc)
+
+            # Z-Image-Turbo is a distilled 8-NFE model: 9 steps = 8 DiT forwards,
+            # and guidance MUST be 0 (cfg_scale from the UI is intentionally ignored).
+            seed = params.get("seed")
+            if seed is None:
+                seed = int.from_bytes(os.urandom(4), "little")
+            steps = min(int(params.get("steps") or 9), 12)
 
             image = self.pipe(
                 prompt=prompt,
                 width=params.get("width", 1024),
                 height=params.get("height", 1024),
-                num_inference_steps=params.get("steps", 20),
-                guidance_scale=params.get("cfg_scale", 3.5),
-                generator=torch.manual_seed(params.get("seed", 42))
+                num_inference_steps=steps,
+                guidance_scale=0.0,
+                generator=torch.Generator("cuda").manual_seed(seed)
             ).images[0]
 
             generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
@@ -176,9 +196,9 @@ class ImageGenerator:
 
 @app.function()
 def health():
-    return {"status": "healthy", "service": "image-generation"}
+    return {"status": "healthy", "service": "image-generation", "model": MODEL_ID}
 
-@app.function(gpu="A100-80GB")
+@app.function(gpu="L40S")
 def gpu_info():
     import torch
     return {

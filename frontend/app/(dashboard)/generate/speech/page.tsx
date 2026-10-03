@@ -11,7 +11,7 @@ import { Loader2, Volume2, Upload } from "lucide-react";
 
 export default function SpeechGenerationPage() {
   const [text, setText] = useState("");
-  const [speed, setSpeed] = useState([1.0]);
+  const [speed, setSpeed] = useState(1.0);
   const [language, setLanguage] = useState("en");
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export default function SpeechGenerationPage() {
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify({
       //     text,
-      //     speed: speed[0],
+      //     speed: speed,
       //     language,
       //   }),
       // });
@@ -41,7 +41,7 @@ export default function SpeechGenerationPage() {
 
       // Simulate generation for now
       await new Promise(resolve => setTimeout(resolve, 3000));
-      console.log("Generated speech:", { text, speed: speed[0], language });
+      console.log("Generated speech:", { text, speed: speed, language });
     } catch (error) {
       console.error("Generation error:", error);
     } finally {
@@ -86,7 +86,7 @@ export default function SpeechGenerationPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label htmlFor="speed">Speed</Label>
-                <span className="text-sm text-muted-foreground">{speed[0].toFixed(1)}x</span>
+                <span className="text-sm text-muted-foreground">{speed.toFixed(1)}x</span>
               </div>
               <Slider
                 id="speed"

@@ -154,7 +154,7 @@ export default async function DashboardPage() {
             </div>
             <div className="relative text-center">
               <span className="font-bold text-lg block mb-1">Generate Image</span>
-              <span className="text-sm text-foreground/60 mono">FLUX.2 dev</span>
+              <span className="text-sm text-foreground/60 mono">Z-Image Turbo</span>
             </div>
           </Link>
 
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
             </div>
             <div className="relative text-center">
               <span className="font-bold text-lg block mb-1">Generate Video</span>
-              <span className="text-sm text-foreground/60 mono">Mochi · CogVideoX</span>
+              <span className="text-sm text-foreground/60 mono">Wan2.2 T2V · I2V</span>
             </div>
           </Link>
 
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
             </div>
             <div className="relative text-center">
               <span className="font-bold text-lg block mb-1">Generate Audio</span>
-              <span className="text-sm text-foreground/60 mono">MusicGen-Large · F5-TTS</span>
+              <span className="text-sm text-foreground/60 mono">ACE-Step 1.5 · Qwen3-TTS</span>
             </div>
           </Link>
         </div>

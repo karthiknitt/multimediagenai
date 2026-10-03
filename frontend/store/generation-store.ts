@@ -4,7 +4,7 @@ import { persist } from "zustand/middleware";
 // Types for generation parameters
 export interface ImageParams {
   prompt: string;
-  model: "flux1-dev" | "flux2-dev" | "flux2-schnell";
+  model: "z-image-turbo";
   steps: number;
   cfgScale: number;
   width: number;
@@ -25,16 +25,26 @@ export interface VideoParams {
 export interface AudioParams {
   variant: "music" | "tts";
 
-  // MusicGen fields
+  // ACE-Step fields
   prompt: string;
   duration: number;
   guidanceScale: number;
 
-  // F5-TTS fields
+  // Qwen3-TTS fields
   text?: string;
-  voicePreset?: "basic_en" | "basic_zh" | "custom";
+  voicePreset?:
+    | "ryan"
+    | "aiden"
+    | "vivian"
+    | "serena"
+    | "uncle_fu"
+    | "dylan"
+    | "eric"
+    | "ono_anna"
+    | "sohee"
+    | "custom";
   voiceReferenceUrl?: string;
-  language: "en" | "zh";
+  language: "en" | "zh" | "ja" | "ko" | "de" | "fr" | "ru" | "pt" | "es" | "it";
   speed: number;
 }
 
@@ -81,9 +91,9 @@ interface GenerationStore {
 
 const defaultImageParams: ImageParams = {
   prompt: "",
-  model: "flux2-dev",
-  steps: 30,
-  cfgScale: 7,
+  model: "z-image-turbo",
+  steps: 9,
+  cfgScale: 0,
   width: 1024,
   height: 1024,
   negativePrompt: "",
@@ -92,8 +102,8 @@ const defaultImageParams: ImageParams = {
 const defaultVideoParams: VideoParams = {
   prompt: "",
   variant: "text2video",
-  numFrames: 64,
-  cfgScale: 7.5,
+  numFrames: 81,
+  cfgScale: 4.0,
 };
 
 const defaultAudioParams: AudioParams = {
@@ -165,6 +175,15 @@ export const useGenerationStore = create<GenerationStore>()(
     }),
     {
       name: "generation-storage",
+      // v2: models were swapped (FLUX/Mochi/CogVideoX/MusicGen/F5-TTS ->
+      // Z-Image-Turbo/Wan2.2/ACE-Step/Qwen3-TTS), so old persisted params are invalid.
+      version: 2,
+      migrate: (persisted) => ({
+        ...(persisted as GenerationStore),
+        imageParams: defaultImageParams,
+        videoParams: defaultVideoParams,
+        audioParams: defaultAudioParams,
+      }),
       partialize: (state) => ({
         imageParams: state.imageParams,
         videoParams: state.videoParams,

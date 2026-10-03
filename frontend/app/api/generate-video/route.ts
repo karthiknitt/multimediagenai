@@ -10,8 +10,8 @@ import { eq } from "drizzle-orm";
 const generateVideoRequestSchema = z.object({
   prompt: z.string().min(3).max(2000),
   variant: z.enum(["text2video", "img2video"]),
-  numFrames: z.number().min(1).max(162).default(64),
-  cfgScale: z.number().min(1).max(20).default(7.5),
+  numFrames: z.number().min(5).max(121).default(81),
+  cfgScale: z.number().min(1).max(20).default(4.0),
   seed: z.number().optional(),
   sourceImageUrl: z.string().url().optional(),
 });
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       .values({
         userId,
         type: "video",
-        model: data.variant === "text2video" ? "mochi" : "cogvideox",
+        model: data.variant === "text2video" ? "wan22-t2v" : "wan22-i2v",
         prompt: data.prompt,
         parameters: data,
         status: "pending",
@@ -92,6 +92,14 @@ export async function POST(request: NextRequest) {
       .set({ status: "processing" })
       .where(eq(generations.id, jobId));
 
+    const markFailed = async (message: string) => {
+      await db
+        .update(generations)
+        .set({ status: "failed", error: message })
+        .where(eq(generations.id, jobId))
+        .catch(console.error);
+    };
+
     // Call Modal API
     const modalPayload: Record<string, unknown> = {
       job_id: jobId,
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
       parameters: {
         num_frames: data.numFrames,
         cfg_scale: data.cfgScale,
-        seed: data.seed || 42,
+        seed: data.seed,
       },
     };
 
@@ -108,34 +116,42 @@ export async function POST(request: NextRequest) {
       modalPayload.image_url = data.sourceImageUrl;
     }
 
-    const modalResponse = await fetch(endpoint, {
+    // Fire and forget: Wan2.2 takes minutes and Modal answers long requests with
+    // a 303 redirect, so we must not hold this request open. Modal writes progress and
+    // the final status/output_url to the generations row itself; the UI polls that
+    // row via /api/generation/[jobId]/stream and shows the video once it is completed.
+    fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(modalPayload),
-    });
-
-    if (!modalResponse.ok) {
-      const errorText = await modalResponse.text();
-      await db
-        .update(generations)
-        .set({ status: "failed", error: `Modal API error: ${errorText}` })
-        .where(eq(generations.id, jobId));
-
-      return NextResponse.json(
-        { error: "Modal API error", message: errorText },
-        { status: 500 }
-      );
-    }
-
-    const modalResult = await modalResponse.json();
+    })
+      .then(async (modalResponse) => {
+        if (!modalResponse.ok) {
+          const errorText = await modalResponse.text();
+          await markFailed(`Modal API error: ${errorText}`);
+          return;
+        }
+        // Modal reports failures in a 200 body ({ status: "error" }) and updates the DB
+        // itself, but make sure a missing DB update can never leave the job hanging.
+        const result = await modalResponse.json().catch(() => null);
+        if (result?.status === "error") {
+          await markFailed(`Modal API error: ${result.message ?? "unknown error"}`);
+        }
+      })
+      .catch(async (error: unknown) => {
+        console.error("Modal video API call failed:", error);
+        await markFailed(
+          `Modal API error: ${error instanceof Error ? error.message : String(error)}`
+        );
+      });
 
     return NextResponse.json({
       jobId,
       message: "Video generation started",
       variant: data.variant,
-      estimatedTime: data.variant === "text2video" ? "3-5 minutes" : "2-3 minutes",
+      estimatedTime: "5-8 minutes",
     });
   } catch (error) {
     console.error("Video generation API error:", error);
