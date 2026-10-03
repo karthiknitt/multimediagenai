@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign In - AI Video Gen",
-  description: "Sign in to your AI Video Gen account",
+  title: "Sign In - Multimedia Generator",
+  description: "Sign in to your Multimedia Generator account",
 };
 
 export default function LoginPage() {

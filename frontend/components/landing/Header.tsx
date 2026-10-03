@@ -25,7 +25,7 @@ export function Header() {
               <Sparkles className="h-6 w-6 text-cyan-400" />
             </div>
             <span className="text-xl font-bold gradient-text hidden sm:inline-block">
-              AI Video Gen
+              Multimedia Generator
             </span>
           </Link>
 

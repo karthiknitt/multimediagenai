@@ -4,7 +4,7 @@ import { Coins } from "lucide-react";
 import { useGeneration } from "@/hooks/useGeneration";
 import { formatCostUsd } from "@/lib/format-cost";
 
-/** Actual Modal compute cost (and runtime) of a finished generation. */
+/** Actual compute cost (and runtime) of a finished generation. */
 export function GenerationCost({ generationId }: { generationId?: string | null }) {
   const { data } = useGeneration(generationId ?? "");
   const cost = formatCostUsd(data?.costUsd);
@@ -14,7 +14,7 @@ export function GenerationCost({ generationId }: { generationId?: string | null 
   return (
     <p
       className="flex items-center justify-center gap-2 text-sm text-foreground/70 mono"
-      title="Modal compute cost for this run (GPU + CPU + memory at list price; excludes cold start)"
+      title="Compute cost of this run (GPU, CPU and memory; excludes startup time)"
     >
       <Coins className="h-4 w-4 text-cyan-400" />
       Cost {cost}

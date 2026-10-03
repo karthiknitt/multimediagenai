@@ -17,7 +17,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Dashboard - AI Video Gen",
+  title: "Dashboard - Multimedia Generator",
   description: "Your AI generation dashboard",
 };
 

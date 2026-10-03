@@ -1,13 +1,41 @@
 "use client";
 
-import { Bell, Search, User } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
+import { BarChart3, Bell, LogOut, Search, Settings, User } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { signOut, useSession } from "@/lib/auth-client";
 
 export function Header() {
   const { data: session } = useSession();
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on navigation, outside click and Escape
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger
+  useEffect(() => setMenuOpen(false), [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const itemClass =
+    "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400";
 
   return (
-    <header className="sticky top-0 z-30 glass-strong border-b border-foreground/10">
+    <header className="sticky top-0 z-40 glass-strong border-b border-foreground/10">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Spacer for mobile menu button */}
         <div className="w-10 lg:hidden" />
@@ -43,15 +71,46 @@ export function Header() {
               <p className="text-sm font-semibold">{session?.user?.name || "User"}</p>
               <p className="text-xs text-foreground/60 mono">{session?.user?.email}</p>
             </div>
-            <button
-              type="button"
-              className="glass hover-glow flex h-10 w-10 items-center justify-center rounded-xl border border-foreground/10 transition-all hover:border-cyan-400/30"
-              aria-label="User profile"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500/20 to-magenta-500/20">
-                <User className="h-4 w-4 text-cyan-400" />
-              </div>
-            </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                className="glass hover-glow flex h-10 w-10 items-center justify-center rounded-xl border border-foreground/10 transition-all hover:border-cyan-400/30"
+                aria-label="User menu"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-cyan-500/20 to-magenta-500/20">
+                  <User className="h-4 w-4 text-cyan-400" />
+                </div>
+              </button>
+              {menuOpen && (
+                <div
+                  role="menu"
+                  aria-label="User menu"
+                  className="absolute right-0 top-12 z-50 w-52 bg-card rounded-xl border border-foreground/10 p-1.5 shadow-xl"
+                >
+                  <Link href="/analytics" role="menuitem" className={itemClass}>
+                    <BarChart3 className="h-4 w-4 text-cyan-400" />
+                    Analytics
+                  </Link>
+                  <Link href="/settings" role="menuitem" className={itemClass}>
+                    <Settings className="h-4 w-4 text-cyan-400" />
+                    Settings
+                  </Link>
+                  <div className="my-1 border-t border-foreground/10" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={itemClass}
+                    onClick={() => signOut()}
+                  >
+                    <LogOut className="h-4 w-4 text-red-400" />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
