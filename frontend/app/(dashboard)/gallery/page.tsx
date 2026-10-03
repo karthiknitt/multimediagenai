@@ -12,6 +12,7 @@ import {
   Video,
 } from "lucide-react";
 import { useState } from "react";
+import { VideoThumbnail } from "@/components/generation/VideoThumbnail";
 import { useDeleteGeneration, useGenerations } from "@/hooks/useGeneration";
 import { formatDistanceToNow } from "@/lib/date-utils";
 import { formatCostUsd } from "@/lib/format-cost";
@@ -208,17 +209,10 @@ export default function GalleryPage() {
                     />
                   )}
                   {gen.type === "video" && (
-                    <video
+                    <VideoThumbnail
                       src={gen.outputUrl}
-                      className="h-full w-full object-cover"
-                      muted
-                      loop
-                      playsInline
-                      onMouseEnter={(e) => e.currentTarget.play()}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.pause();
-                        e.currentTarget.currentTime = 0;
-                      }}
+                      label={gen.prompt}
+                      className="h-full w-full"
                     />
                   )}
                   {(gen.type === "audio" || gen.type === "speech") && (

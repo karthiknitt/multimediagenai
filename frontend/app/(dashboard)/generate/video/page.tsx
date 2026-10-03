@@ -10,8 +10,8 @@ import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ParamControls } from "@/components/generation/ParamControls";
 import { PromptInput } from "@/components/generation/PromptInput";
-import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
 import { VideoPreview } from "@/components/generation/VideoPreview";
+import { VideoThumbnail } from "@/components/generation/VideoThumbnail";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -234,9 +234,9 @@ export default function VideoGenerationPage() {
                   aria-label={`Load prompt: ${item.prompt.slice(0, 50)}${item.prompt.length > 50 ? "..." : ""}`}
                 >
                   {item.id ? (
-                    <SecureThumbnail
+                    <VideoThumbnail
                       generationId={item.id}
-                      alt={item.prompt.slice(0, 20)}
+                      label={item.prompt.slice(0, 20)}
                       className="h-12 w-12 shrink-0"
                     />
                   ) : (

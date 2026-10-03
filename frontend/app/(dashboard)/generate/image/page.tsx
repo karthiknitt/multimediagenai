@@ -242,6 +242,7 @@ export default function ImageGenerationPage() {
             {/* Prompt input */}
             <div className="card-premium p-6">
               <PromptInput
+                showTemplates
                 value={prompt}
                 onChange={(value) => setValue("prompt", value)}
                 disabled={isGenerating}
