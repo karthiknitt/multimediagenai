@@ -78,7 +78,7 @@ export function SignupForm() {
           <div className="p-2 rounded-xl bg-linear-to-br from-cyan-500/10 to-magenta-500/10 group-hover:scale-110 transition-transform">
             <Sparkles className="h-6 w-6 text-cyan-400" />
           </div>
-          <span className="text-2xl font-bold gradient-text">AI Video Gen</span>
+          <span className="text-2xl font-bold gradient-text">Multimedia Generator</span>
         </Link>
 
         <div className="card-premium p-8 animate-fade-in-up">

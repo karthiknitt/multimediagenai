@@ -3,7 +3,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Video Generation Platform",
+  title: "Multimedia Generator",
   description:
     "Generate high-quality images, videos, and audio from text prompts using state-of-the-art AI models",
   keywords: [
@@ -16,9 +16,9 @@ export const metadata: Metadata = {
     "ACE-Step",
     "Qwen3-TTS",
   ],
-  authors: [{ name: "AI Video Gen" }],
+  authors: [{ name: "Multimedia Generator" }],
   openGraph: {
-    title: "AI Video Generation Platform",
+    title: "Multimedia Generator",
     description: "Generate high-quality images, videos, and audio from text prompts",
     type: "website",
   },

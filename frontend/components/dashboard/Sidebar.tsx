@@ -1,14 +1,12 @@
 "use client";
 
 import {
-  BarChart3,
   FolderOpen,
   Image,
   LayoutDashboard,
   LogOut,
   Menu,
   Music,
-  Settings,
   Sparkles,
   Video,
   X,
@@ -26,8 +24,6 @@ const navigation = [
   { name: "Video Generation", href: "/generate/video", icon: Video, color: "text-magenta-400" },
   { name: "Audio Generation", href: "/generate/audio", icon: Music, color: "text-blue-400" },
   { name: "Gallery", href: "/gallery", icon: FolderOpen, color: "text-foreground/60" },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, color: "text-foreground/60" },
-  { name: "Settings", href: "/settings", icon: Settings, color: "text-foreground/60" },
 ];
 
 export function Sidebar() {
@@ -72,7 +68,9 @@ export function Sidebar() {
             <div className="p-2 rounded-xl bg-linear-to-br from-cyan-500/10 to-magenta-500/10 group-hover:scale-110 transition-transform">
               <Sparkles className="h-6 w-6 text-cyan-400" />
             </div>
-            <span className="text-xl font-bold gradient-text">AI Video Gen</span>
+            <span className="text-lg font-bold gradient-text whitespace-nowrap">
+              Multimedia Generator
+            </span>
           </Link>
         </div>
 

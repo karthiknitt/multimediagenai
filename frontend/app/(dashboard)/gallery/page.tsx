@@ -284,7 +284,7 @@ export default function GalleryPage() {
                       {formatCostUsd(gen.costUsd) && (
                         <span
                           className="font-semibold text-cyan-400"
-                          title="Modal compute cost for this generation"
+                          title="Compute cost of this generation"
                         >
                           {formatCostUsd(gen.costUsd)}
                         </span>

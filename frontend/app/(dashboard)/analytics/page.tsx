@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
               iconColor="text-cyan-400"
             />
             <StatsCard
-              title="Spend (Modal)"
+              title="Spend"
               value={formatCostUsd(data.summary.totalCostUsd) ?? "$0.00"}
               description={`${formatCostUsd(data.lifetime.totalCostUsd) ?? "$0.00"} all time`}
               icon={Coins}

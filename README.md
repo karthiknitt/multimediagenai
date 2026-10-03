@@ -1,4 +1,4 @@
-# AI Video Generation Platform
+# Multimedia Generator
 
 Enterprise-grade AI-powered image, video, and audio generation platform with professional editing capabilities.
 
