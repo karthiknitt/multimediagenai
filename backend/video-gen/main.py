@@ -87,6 +87,56 @@ def fetch_r2_bytes(url: str, timeout: int = 30) -> bytes:
         return bytes(data)
 
 
+def _clamp_num(params, key, default, lo, hi, cast=float):
+    """Read a numeric param, falling back to `default` on junk and clamping to [lo, hi]."""
+    value = params.get(key)
+    if value is None or isinstance(value, bool):
+        return default
+    try:
+        value = cast(value)
+    except (TypeError, ValueError):
+        return default
+    if value != value:  # NaN
+        return default
+    return min(max(value, lo), hi)
+
+
+def _opt_seed(params):
+    seed = params.get("seed")
+    if seed is None or isinstance(seed, bool):
+        return None
+    try:
+        seed = int(seed)
+    except (TypeError, ValueError):
+        return None
+    return seed if 0 <= seed <= 2_147_483_647 else None
+
+
+def parse_video_params(params: dict, i2v: bool) -> dict:
+    """Validate/clamp user params for Wan2.2 (T2V when i2v=False)."""
+
+    def size(key, default):
+        return _clamp_num(params, key, default, 256, 1280, int) // 16 * 16
+
+    negative = params.get("negative_prompt")
+    negative = negative.strip()[:1000] if isinstance(negative, str) else ""
+    cfg2 = params.get("cfg_scale_2")
+    return {
+        "width": size("width", 832),
+        "height": size("height", 480),
+        "num_frames": _frames_4k_plus_1(_clamp_num(params, "num_frames", 81, 5, 121, int)),
+        "steps": _clamp_num(params, "steps", 40, 10, 60, int),
+        "cfg": _clamp_num(params, "cfg_scale", 3.5 if i2v else 4.0, 1.0, 10.0),
+        # I2V: None lets diffusers reuse guidance_scale for both experts
+        "cfg2": _clamp_num(params, "cfg_scale_2", 3.0, 1.0, 10.0)
+        if (not i2v or cfg2 is not None)
+        else None,
+        "fps": _clamp_num(params, "fps", FPS, 8, 30, int),
+        "negative_prompt": negative or NEGATIVE_PROMPT,
+        "seed": _opt_seed(params),
+    }
+
+
 def _frames_4k_plus_1(num_frames: int) -> int:
     """Wan requires num_frames = 4k + 1"""
     num_frames = max(5, int(num_frames))
@@ -169,23 +219,23 @@ class VideoGenerator:
             print("Wan2.2 I2V-A14B loaded successfully!")
         return self.i2v
 
-    def _encode_and_upload(self, job_id, frames):
+    def _encode_and_upload(self, job_id, frames, fps=FPS):
         """Encode frames to mp4 and upload to R2. Returns the public URL."""
         import os
         from diffusers.utils import export_to_video
 
         output_path = os.path.join(tempfile.gettempdir(), f"{job_id}.mp4")
         try:
-            return self._upload_video(frames, output_path, job_id, export_to_video)
+            return self._upload_video(frames, output_path, job_id, export_to_video, fps)
         finally:
             if os.path.exists(output_path):
                 os.remove(output_path)
 
-    def _upload_video(self, frames, output_path, job_id, export_to_video):
+    def _upload_video(self, frames, output_path, job_id, export_to_video, fps):
         import os
         import boto3
 
-        export_to_video(frames, output_path, fps=FPS)
+        export_to_video(frames, output_path, fps=fps)
 
         s3_client = boto3.client(
             "s3",
@@ -226,26 +276,27 @@ class VideoGenerator:
             self._update_db(job_id, "processing", 25, "Generating video frames...")
             start_time = datetime.now(timezone.utc)
 
-            seed = params.get("seed")
+            opts = parse_video_params(params, i2v=False)
+            seed = opts["seed"]
             if seed is None:
                 seed = int.from_bytes(os.urandom(4), "little")
 
             frames = pipe(
                 prompt=prompt,
-                negative_prompt=NEGATIVE_PROMPT,
-                height=480,
-                width=832,
-                num_frames=_frames_4k_plus_1(params.get("num_frames", 81)),
-                guidance_scale=params.get("cfg_scale", 4.0),
-                guidance_scale_2=3.0,
-                num_inference_steps=params.get("steps", 40),
+                negative_prompt=opts["negative_prompt"],
+                height=opts["height"],
+                width=opts["width"],
+                num_frames=opts["num_frames"],
+                guidance_scale=opts["cfg"],
+                guidance_scale_2=opts["cfg2"],
+                num_inference_steps=opts["steps"],
                 generator=torch.Generator("cuda").manual_seed(seed),
             ).frames[0]
 
             generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             self._update_db(job_id, "processing", 75, "Encoding and uploading video...")
-            output_url = self._encode_and_upload(job_id, frames)
+            output_url = self._encode_and_upload(job_id, frames, opts["fps"])
 
             self._update_db(
                 job_id,
@@ -294,8 +345,9 @@ class VideoGenerator:
             self._update_db(job_id, "processing", 15, "Loading Wan2.2 image-to-video model...")
             pipe = self._load_i2v()
 
-            # Fit the source image into ~480p area, keeping aspect ratio
-            max_area = 480 * 832
+            # Fit the source image into the requested pixel budget, keeping aspect ratio
+            opts = parse_video_params(params, i2v=True)
+            max_area = opts["width"] * opts["height"]
             aspect_ratio = source_image.height / source_image.width
             mod_value = pipe.vae_scale_factor_spatial * pipe.transformer.config.patch_size[1]
             height = round(np.sqrt(max_area * aspect_ratio)) // mod_value * mod_value
@@ -305,26 +357,27 @@ class VideoGenerator:
             self._update_db(job_id, "processing", 30, "Generating video from image...")
             start_time = datetime.now(timezone.utc)
 
-            seed = params.get("seed")
+            seed = opts["seed"]
             if seed is None:
                 seed = int.from_bytes(os.urandom(4), "little")
 
             frames = pipe(
                 image=source_image,
                 prompt=prompt,
-                negative_prompt=NEGATIVE_PROMPT,
+                negative_prompt=opts["negative_prompt"],
                 height=height,
                 width=width,
-                num_frames=_frames_4k_plus_1(params.get("num_frames", 81)),
-                guidance_scale=params.get("cfg_scale", 3.5),
-                num_inference_steps=params.get("steps", 40),
+                num_frames=opts["num_frames"],
+                guidance_scale=opts["cfg"],
+                guidance_scale_2=opts["cfg2"],
+                num_inference_steps=opts["steps"],
                 generator=torch.Generator("cuda").manual_seed(seed),
             ).frames[0]
 
             generation_time = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             self._update_db(job_id, "processing", 75, "Encoding and uploading video...")
-            output_url = self._encode_and_upload(job_id, frames)
+            output_url = self._encode_and_upload(job_id, frames, opts["fps"])
 
             self._update_db(
                 job_id,

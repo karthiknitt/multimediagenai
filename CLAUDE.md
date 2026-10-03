@@ -58,6 +58,6 @@ Dev loop after UI changes: serve with `/portless`, verify with `/agent-browser`.
 - Never commit secrets; docs use placeholders (`DATABASE_URL=postgresql://<user>:<password>@<host>/db`).
 - Auth schema changes: better-auth expects specific tables/columns (see `frontend/db/schema.ts`); a mismatch is logged as `Drizzle schema mismatch` at build time. Apply new drizzle migrations to Neon before deploying a build that needs them.
 - `frontend/lib/` is matched by a gitignore pattern: use `git add -f` for **new** files there.
-- Keep new generation parameters in sync across three places: Zod schema (`frontend/lib/validation.ts` or the route), the Modal payload, and the backend `params.get(...)`.
+- Generation parameters live in one registry, `frontend/lib/model-params.ts` (drives UI, zod validation and the Modal payload). Adding one = a `ParamDef` there + reading it in the backend `parse_*_params`. Reference: `docs/model-parameters.md`.
 - Models were swapped on 2026-10 (FLUX/Mochi/CogVideoX/MusicGen/F5-TTS removed). Old status docs in `docs/archive/` describe the previous stack.
 - Open fix plan and history: `docs/plans/2026-10-03-error-fix-plan.md`.

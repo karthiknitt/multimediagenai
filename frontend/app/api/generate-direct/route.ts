@@ -1,24 +1,13 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { modalHeaders } from "@/lib/modal";
 import { dispatchModalJob } from "@/lib/modal-job";
-
-// Schema for image generation requests
-const generateRequestSchema = z.object({
-  prompt: z.string().min(3).max(2000),
-  model: z.enum(["z-image-turbo"]).default("z-image-turbo"),
-  steps: z.number().min(1).max(12).default(9),
-  cfgScale: z.number().min(0).max(20).default(0),
-  width: z.number().min(256).max(2048).default(1024),
-  height: z.number().min(256).max(2048).default(1024),
-  seed: z.number().optional(),
-  negativePrompt: z.string().max(2000).optional(),
-});
+import { IMAGE_PARAMS, toModalParams } from "@/lib/model-params";
+import { imageGenerationSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validationResult = generateRequestSchema.safeParse(body);
+    const validationResult = imageGenerationSchema.safeParse(body);
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -87,13 +76,7 @@ export async function POST(request: NextRequest) {
         job_id: jobId,
         prompt: data.prompt,
         model: data.model,
-        parameters: {
-          steps: data.steps,
-          cfg_scale: data.cfgScale,
-          width: data.width,
-          height: data.height,
-          seed: data.seed,
-        },
+        parameters: toModalParams(IMAGE_PARAMS, data),
       },
       markFailed: async (message) => {
         await db

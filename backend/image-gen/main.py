@@ -31,6 +31,46 @@ image = modal.Image.debian_slim(python_version="3.11").pip_install(
 )
 
 
+def _clamp_num(params, key, default, lo, hi, cast=float):
+    """Read a numeric param, falling back to `default` on junk and clamping to [lo, hi]."""
+    value = params.get(key)
+    if value is None or isinstance(value, bool):
+        return default
+    try:
+        value = cast(value)
+    except (TypeError, ValueError):
+        return default
+    if value != value:  # NaN
+        return default
+    return min(max(value, lo), hi)
+
+
+def _opt_seed(params):
+    seed = params.get("seed")
+    if seed is None or isinstance(seed, bool):
+        return None
+    try:
+        seed = int(seed)
+    except (TypeError, ValueError):
+        return None
+    return seed if 0 <= seed <= 2_147_483_647 else None
+
+
+def parse_image_params(params: dict) -> dict:
+    """Validate/clamp user params. Z-Image-Turbo is distilled: guidance is always 0."""
+
+    def size(key):
+        v = _clamp_num(params, key, 1024, 256, 2048, int)
+        return v // 16 * 16  # the VAE needs multiples of 16
+
+    return {
+        "width": size("width"),
+        "height": size("height"),
+        "steps": _clamp_num(params, "steps", 9, 1, 12, int),
+        "seed": _opt_seed(params),
+    }
+
+
 @app.function(
     image=image,
     volumes={"/models": volume},
@@ -93,16 +133,16 @@ class ImageGenerator:
 
             # Z-Image-Turbo is a distilled 8-NFE model: 9 steps = 8 DiT forwards,
             # and guidance MUST be 0 (cfg_scale from the UI is intentionally ignored).
-            seed = params.get("seed")
+            opts = parse_image_params(params)
+            seed = opts["seed"]
             if seed is None:
                 seed = int.from_bytes(os.urandom(4), "little")
-            steps = min(int(params.get("steps") or 9), 12)
 
             image = self.pipe(
                 prompt=prompt,
-                width=params.get("width", 1024),
-                height=params.get("height", 1024),
-                num_inference_steps=steps,
+                width=opts["width"],
+                height=opts["height"],
+                num_inference_steps=opts["steps"],
                 guidance_scale=0.0,
                 generator=torch.Generator("cuda").manual_seed(seed),
             ).images[0]

@@ -1,4 +1,5 @@
 import logging
+import re
 import shutil
 import tempfile
 
@@ -34,6 +35,78 @@ audio_image = (
     )
     .env({"PYTHONPATH": "/opt/ace-step"})
 )
+
+
+def _clamp_num(params, key, default, lo, hi, cast=float):
+    """Read a numeric param, falling back to `default` on junk and clamping to [lo, hi]."""
+    value = params.get(key)
+    if value is None or isinstance(value, bool):
+        return default
+    try:
+        value = cast(value)
+    except (TypeError, ValueError):
+        return default
+    if value != value:  # NaN
+        return default
+    return min(max(value, lo), hi)
+
+
+def _flag(params, key, default):
+    value = params.get(key)
+    return value if isinstance(value, bool) else default
+
+
+# acestep/constants.py:VALID_LANGUAGES (pinned commit)
+VOCAL_LANGUAGES = frozenset(
+    "ar az bg bn ca cs da de el en es fa fi fr he hi hr ht hu id is it ja ko la lt ms ne nl no "
+    "pa pl pt ro ru sa sk sr sv sw ta te th tl tr uk ur vi yue zh unknown".split()
+)
+KEYSCALE_RE = re.compile(r"^[A-G][#b]? (major|minor)$")
+
+
+def parse_music_params(params: dict) -> dict:
+    """Validate/clamp user params for ACE-Step 1.5 turbo (user input is untrusted)."""
+    duration = _clamp_num(params, "duration", 30.0, 10.0, 240.0)
+
+    lyrics = params.get("lyrics")
+    lyrics = lyrics.strip()[:4000] if isinstance(lyrics, str) else ""
+    language = params.get("vocal_language")
+    keyscale = params.get("keyscale")
+    time_sig = str(params.get("time_signature", ""))
+    infer_method = params.get("infer_method")
+
+    fade_in = _clamp_num(params, "fade_in_duration", 0.0, 0.0, 10.0)
+    fade_out = _clamp_num(params, "fade_out_duration", 0.0, 0.0, 10.0)
+    if fade_in + fade_out > duration:  # fades must fit inside the clip
+        scale = duration / (fade_in + fade_out)
+        fade_in, fade_out = fade_in * scale, fade_out * scale
+
+    seed = params.get("seed")
+    return {
+        "duration": duration,
+        "lyrics": lyrics,
+        "instrumental": _flag(params, "instrumental", False) or not lyrics,
+        "vocal_language": language if language in VOCAL_LANGUAGES else "unknown",
+        "bpm": _clamp_num(params, "bpm", None, 30, 300, int),
+        "keyscale": keyscale if isinstance(keyscale, str) and KEYSCALE_RE.match(keyscale) else "",
+        "timesignature": time_sig if time_sig in ("2", "3", "4", "6") else "",
+        "seed": int(seed)
+        if isinstance(seed, int) and not isinstance(seed, bool) and seed >= 0
+        else None,
+        "shift": _clamp_num(params, "shift", 1.0, 1.0, 5.0),
+        "infer_method": infer_method if infer_method in ("ode", "sde") else "ode",
+        "thinking": _flag(params, "thinking", True),
+        "lm_temperature": _clamp_num(params, "lm_temperature", 0.85, 0.0, 2.0),
+        "lm_top_k": _clamp_num(params, "lm_top_k", 0, 0, 200, int),
+        "lm_top_p": _clamp_num(params, "lm_top_p", 0.9, 0.1, 1.0),
+        "lm_cfg_scale": _clamp_num(params, "lm_cfg_scale", 2.0, 1.0, 5.0),
+        "use_cot_metas": _flag(params, "use_cot_metas", True),
+        "use_cot_caption": _flag(params, "use_cot_caption", True),
+        "use_cot_language": _flag(params, "use_cot_language", True),
+        "enable_normalization": _flag(params, "enable_normalization", True),
+        "fade_in_duration": fade_in,
+        "fade_out_duration": fade_out,
+    }
 
 
 @app.function(
@@ -132,18 +205,34 @@ class AudioGenerator:
             # Generate audio
             start_time = datetime.now(timezone.utc)
 
-            duration = float(params.get("duration", 30))  # seconds
-            seed = params.get("seed")
-            lyrics = params.get("lyrics") or ""
+            opts = parse_music_params(params)
+            seed = opts["seed"]
 
             gen_params = GenerationParams(
                 caption=prompt,
-                lyrics=lyrics if lyrics else "[Instrumental]",
-                instrumental=not lyrics,
-                duration=duration,
+                lyrics="[Instrumental]" if opts["instrumental"] else opts["lyrics"],
+                instrumental=opts["instrumental"],
+                duration=opts["duration"],
+                vocal_language=opts["vocal_language"],
+                bpm=opts["bpm"],
+                keyscale=opts["keyscale"],
+                timesignature=opts["timesignature"],
                 inference_steps=8,  # turbo model: 8 steps, CFG not used
-                seed=int(seed) if seed is not None else -1,
-                thinking=self.llm_ready,  # let the 5Hz LM plan the song when available
+                seed=seed if seed is not None else -1,
+                shift=opts["shift"],
+                infer_method=opts["infer_method"],
+                # 5Hz LM planner: only when it loaded and the user left it on
+                thinking=self.llm_ready and opts["thinking"],
+                lm_temperature=opts["lm_temperature"],
+                lm_top_k=opts["lm_top_k"],
+                lm_top_p=opts["lm_top_p"],
+                lm_cfg_scale=opts["lm_cfg_scale"],
+                use_cot_metas=opts["use_cot_metas"],
+                use_cot_caption=opts["use_cot_caption"],
+                use_cot_language=opts["use_cot_language"],
+                enable_normalization=opts["enable_normalization"],
+                fade_in_duration=opts["fade_in_duration"],
+                fade_out_duration=opts["fade_out_duration"],
             )
             gen_config = GenerationConfig(
                 batch_size=1,

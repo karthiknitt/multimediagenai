@@ -7,16 +7,17 @@ import { type SubmitHandler, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
+import { ParamControls } from "@/components/generation/ParamControls";
 import { PromptInput } from "@/components/generation/PromptInput";
 import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
 import { VideoPreview } from "@/components/generation/VideoPreview";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCancelGeneration, useGenerateVideo } from "@/hooks/useGeneration";
 import { useGenerationStream } from "@/hooks/useGenerationStream";
 import { formatDistanceToNow } from "@/lib/date-utils";
+import { VIDEO_PARAMS } from "@/lib/model-params";
 import { videoGenerationSchema } from "@/lib/validation";
 import { useGenerationStore, type VideoParams } from "@/store/generation-store";
 
@@ -40,35 +41,18 @@ export default function VideoGenerationPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(videoGenerationSchema),
-    defaultValues: {
-      prompt: videoParams.prompt,
-      variant: videoParams.variant,
-      numFrames: videoParams.numFrames,
-      cfgScale: videoParams.cfgScale,
-      seed: videoParams.seed,
-      sourceImageUrl: videoParams.sourceImageUrl,
-    },
+    defaultValues: videoParams,
   });
 
   const prompt = watch("prompt") ?? "";
-  const numFrames = watch("numFrames") ?? 81;
-  const cfgScale = watch("cfgScale") ?? 4.0;
-  const seed = watch("seed");
   const sourceImageUrl = watch("sourceImageUrl");
+  const values = watch();
 
-  // Update parameters when variant changes
+  // Wan2.2 recommends different guidance for text-to-video and image-to-video
   useEffect(() => {
-    const variantDefaults = {
-      text2video: { numFrames: 81, cfgScale: 4.0 },
-      img2video: { numFrames: 81, cfgScale: 3.5 },
-    };
-
-    const defaults = variantDefaults[variant];
-    if (defaults) {
-      setValue("numFrames", defaults.numFrames);
-      setValue("cfgScale", defaults.cfgScale);
-      setValue("variant", variant);
-    }
+    setValue("variant", variant);
+    setValue("cfgScale", variant === "text2video" ? 4.0 : 3.5);
+    setValue("cfgScale2", 3.0);
   }, [variant, setValue]);
 
   // SSE stream for progress updates
@@ -107,28 +91,9 @@ export default function VideoGenerationPage() {
         return;
       }
 
-      // Create params object with required fields
-      const params: VideoParams = {
-        prompt: data.prompt,
-        variant: data.variant,
-        numFrames: data.numFrames ?? 81,
-        cfgScale: data.cfgScale ?? 4.0,
-        seed: data.seed,
-        sourceImageUrl: data.sourceImageUrl,
-      };
-
-      // Save params to store
-      setVideoParams(params);
-
-      // Start generation
-      const result = await generateMutation.mutateAsync({
-        prompt: params.prompt,
-        variant: params.variant,
-        numFrames: params.numFrames,
-        cfgScale: params.cfgScale,
-        seed: params.seed,
-        sourceImageUrl: params.sourceImageUrl,
-      });
+      // Save params to store, then start generation
+      setVideoParams(data);
+      const result = await generateMutation.mutateAsync(data);
 
       // Track the job
       const jobId = result.jobId;
@@ -140,7 +105,7 @@ export default function VideoGenerationPage() {
         type: "video",
         status: "pending",
         progress: 0,
-        prompt: params.prompt,
+        prompt: data.prompt,
         createdAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -228,59 +193,16 @@ export default function VideoGenerationPage() {
           Parameters
         </h3>
 
-        {/* Num Frames */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Frames</Label>
-            <span className="text-sm text-foreground/60 mono">{numFrames}</span>
-          </div>
-          <Slider
-            value={numFrames}
-            onValueChange={(value) => setValue("numFrames", value)}
-            min={33}
-            max={121}
-            step={8}
-            disabled={isGenerating}
-            className="w-full"
-          />
-          <p className="text-xs text-foreground/50">
-            {`~${(numFrames / 16).toFixed(1)}s at 16fps (longer = slower generation)`}
-          </p>
-        </div>
-
-        {/* CFG Scale */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Guidance Scale</Label>
-            <span className="text-sm text-foreground/60 mono">{cfgScale.toFixed(1)}</span>
-          </div>
-          <Slider
-            value={cfgScale}
-            onValueChange={(value) => setValue("cfgScale", value)}
-            min={1}
-            max={20}
-            step={0.5}
-            disabled={isGenerating}
-            className="w-full"
-          />
-          <p className="text-xs text-foreground/50">Higher = more prompt adherence</p>
-        </div>
-
-        {/* Seed */}
-        <div className="space-y-3">
-          <Label className="text-sm font-medium">Seed (optional)</Label>
-          <Input
-            type="number"
-            value={seed ?? ""}
-            onChange={(e) =>
-              setValue("seed", e.target.value ? parseInt(e.target.value) : undefined)
+        <ParamControls
+          defs={VIDEO_PARAMS}
+          values={values}
+          onChange={(patch) => {
+            for (const [key, value] of Object.entries(patch)) {
+              setValue(key as keyof FormData, value as never, { shouldDirty: true });
             }
-            placeholder="Random"
-            disabled={isGenerating}
-            className="font-mono"
-          />
-          <p className="text-xs text-foreground/50">Use same seed for reproducible results</p>
-        </div>
+          }}
+          disabled={isGenerating}
+        />
       </div>
     </div>
   );

@@ -1,36 +1,30 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// Types for generation parameters
-export interface ImageParams {
+import {
+  defaultsFor,
+  IMAGE_PARAMS,
+  MUSIC_PARAMS,
+  type ParamInput,
+  TTS_PARAMS,
+  VIDEO_PARAMS,
+} from "@/lib/model-params";
+
+// Generation parameters: the per-model tunables come from the registry in lib/model-params.ts
+export type ImageParams = {
   prompt: string;
   model: "z-image-turbo";
-  steps: number;
-  cfgScale: number;
-  width: number;
-  height: number;
-  seed?: number;
-  negativePrompt?: string;
-}
+} & ParamInput<typeof IMAGE_PARAMS>;
 
-export interface VideoParams {
+export type VideoParams = {
   prompt: string;
   variant: "text2video" | "img2video";
-  numFrames: number;
-  cfgScale: number;
-  seed?: number;
   sourceImageUrl?: string;
-}
+} & ParamInput<typeof VIDEO_PARAMS>;
 
-export interface AudioParams {
+export type AudioParams = {
   variant: "music" | "tts";
-
-  // ACE-Step fields
   prompt: string;
-  duration: number;
-  guidanceScale: number;
-
-  // Qwen3-TTS fields
   text?: string;
   voicePreset?:
     | "ryan"
@@ -45,8 +39,8 @@ export interface AudioParams {
     | "custom";
   voiceReferenceUrl?: string;
   language: "en" | "zh" | "ja" | "ko" | "de" | "fr" | "ru" | "pt" | "es" | "it";
-  speed: number;
-}
+} & ParamInput<typeof MUSIC_PARAMS> &
+  ParamInput<typeof TTS_PARAMS>;
 
 export interface GenerationJob {
   id: string;
@@ -92,27 +86,21 @@ interface GenerationStore {
 const defaultImageParams: ImageParams = {
   prompt: "",
   model: "z-image-turbo",
-  steps: 9,
-  cfgScale: 0,
-  width: 1024,
-  height: 1024,
-  negativePrompt: "",
+  ...(defaultsFor(IMAGE_PARAMS) as ParamInput<typeof IMAGE_PARAMS>),
 };
 
 const defaultVideoParams: VideoParams = {
   prompt: "",
   variant: "text2video",
-  numFrames: 81,
-  cfgScale: 4.0,
+  ...(defaultsFor(VIDEO_PARAMS) as ParamInput<typeof VIDEO_PARAMS>),
 };
 
 const defaultAudioParams: AudioParams = {
   variant: "music",
   prompt: "",
-  duration: 30,
-  guidanceScale: 3.0,
   language: "en",
-  speed: 1.0,
+  ...(defaultsFor(MUSIC_PARAMS) as ParamInput<typeof MUSIC_PARAMS>),
+  ...(defaultsFor(TTS_PARAMS) as ParamInput<typeof TTS_PARAMS>),
 };
 
 export const useGenerationStore = create<GenerationStore>()(
@@ -175,7 +163,8 @@ export const useGenerationStore = create<GenerationStore>()(
       name: "generation-storage",
       // v2: models were swapped (FLUX/Mochi/CogVideoX/MusicGen/F5-TTS ->
       // Z-Image-Turbo/Wan2.2/ACE-Step/Qwen3-TTS), so old persisted params are invalid.
-      version: 2,
+      // v3: params are registry-driven (lib/model-params.ts); reset to the new defaults.
+      version: 3,
       migrate: (persisted) => ({
         ...(persisted as GenerationStore),
         imageParams: defaultImageParams,

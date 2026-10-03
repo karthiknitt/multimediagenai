@@ -123,6 +123,7 @@ class TTSRequest:
     language: str = "en"
     speed: float = 1.0
     emotion: Optional[str] = None  # free-text style instruction, e.g. "Very happy."
+    parameters: Optional[dict] = None  # tunables, see parse_tts_params
 
 
 @dataclass
@@ -132,6 +133,42 @@ class TTSResponse:
     processing_time_ms: int
     output_url: Optional[str] = None
     error: Optional[str] = None
+
+
+def _clamp_num(params, key, default, lo, hi, cast=float):
+    """Read a numeric param, falling back to `default` on junk and clamping to [lo, hi]."""
+    value = params.get(key)
+    if value is None or isinstance(value, bool):
+        return default
+    try:
+        value = cast(value)
+    except (TypeError, ValueError):
+        return default
+    if value != value:  # NaN
+        return default
+    return min(max(value, lo), hi)
+
+
+def parse_tts_params(params: dict) -> dict:
+    """Validate/clamp user params. Defaults are Qwen3-TTS's own sampling defaults."""
+    seed = params.get("seed")
+
+    def text(key, cap):
+        v = params.get(key)
+        return v.strip()[:cap] if isinstance(v, str) else ""
+
+    return {
+        "temperature": _clamp_num(params, "temperature", 0.9, 0.1, 1.5),
+        "top_k": _clamp_num(params, "top_k", 50, 0, 200, int),
+        "top_p": _clamp_num(params, "top_p", 1.0, 0.1, 1.0),
+        "repetition_penalty": _clamp_num(params, "repetition_penalty", 1.05, 1.0, 2.0),
+        "subtalker_temperature": _clamp_num(params, "subtalker_temperature", 0.9, 0.1, 1.5),
+        "seed": int(seed)
+        if isinstance(seed, int) and not isinstance(seed, bool) and seed >= 0
+        else None,
+        "instruct": text("instruct", 300),
+        "reference_text": text("reference_text", 500),
+    }
 
 
 MAX_FETCH_BYTES = 10 * 1024 * 1024
@@ -355,10 +392,26 @@ class TTSGenerator:
         language: str = "en",
         speed: float = 1.0,
         emotion: Optional[str] = None,
+        opts: Optional[dict] = None,
     ) -> bytes:
         """Generate speech using Qwen3-TTS"""
-        import soundfile as sf
         import numpy as np
+        import soundfile as sf
+        import torch
+
+        opts = opts or parse_tts_params({})
+        instruct = opts["instruct"] or emotion or ""
+        sampling = dict(
+            do_sample=True,
+            temperature=opts["temperature"],
+            top_k=opts["top_k"],
+            top_p=opts["top_p"],
+            repetition_penalty=opts["repetition_penalty"],
+            subtalker_temperature=opts["subtalker_temperature"],
+        )
+        if opts["seed"] is not None:
+            torch.manual_seed(opts["seed"])
+            torch.cuda.manual_seed_all(opts["seed"])
 
         # Preprocess text
         text = text.strip()
@@ -375,7 +428,8 @@ class TTSGenerator:
                 text=text,
                 language=qwen_language,
                 speaker=preset["speaker"],
-                instruct=emotion or "",
+                instruct=instruct,
+                **sampling,
             )
         elif voice_reference_url:
             # Download custom reference audio from URL and clone it
@@ -385,18 +439,20 @@ class TTSGenerator:
                 ref.write(ref_bytes)
                 ref.flush()
 
-                # No transcript is collected by the UI, so clone from the speaker
-                # embedding only (x_vector_only_mode needs no reference text).
+                # With a transcript the model clones in-context (higher fidelity);
+                # without one it uses the speaker embedding only.
                 clone = self._get_clone_model()
+                ref_text = opts["reference_text"] or None
                 prompt_items = clone.create_voice_clone_prompt(
                     ref_audio=ref.name,
-                    ref_text=None,
-                    x_vector_only_mode=True,
+                    ref_text=ref_text,
+                    x_vector_only_mode=ref_text is None,
                 )
             wavs, sample_rate = clone.generate_voice_clone(
                 text=text,
                 language=qwen_language,
                 voice_clone_prompt=prompt_items,
+                **sampling,
             )
         else:
             preset = VOICE_PRESETS[DEFAULT_PRESET]
@@ -404,7 +460,8 @@ class TTSGenerator:
                 text=text,
                 language=qwen_language,
                 speaker=preset["speaker"],
-                instruct=emotion or "",
+                instruct=instruct,
+                **sampling,
             )
 
         audio_array = np.asarray(wavs[0], dtype=np.float32)
@@ -446,6 +503,7 @@ class TTSGenerator:
                 language=request.language,
                 speed=request.speed,
                 emotion=request.emotion,
+                opts=parse_tts_params(request.parameters or {}),
             )
 
             # Update progress (50%)
