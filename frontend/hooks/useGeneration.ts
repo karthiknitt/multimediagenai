@@ -18,6 +18,7 @@ export interface GenerationResponse {
   outputUrl?: string;
   error?: string;
   processingTimeMs?: number;
+  costUsd?: number | null;
   createdAt: string;
   completedAt?: string;
 }

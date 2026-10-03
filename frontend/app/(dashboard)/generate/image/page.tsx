@@ -5,6 +5,7 @@ import { Clock, History, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import type { z } from "zod";
+import { GenerationCost } from "@/components/generation/GenerationCost";
 import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ImagePreview } from "@/components/generation/ImagePreview";
@@ -313,6 +314,7 @@ export default function ImageGenerationPage() {
               isLoading={isGenerating}
               onRegenerate={completedJobId ? handleRegenerate : undefined}
             />
+            <GenerationCost generationId={completedJobId} />
           </div>
         </GenerationLayout>
       </form>

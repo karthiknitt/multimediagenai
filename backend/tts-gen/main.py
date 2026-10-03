@@ -229,6 +229,20 @@ def download_models():
     return True
 
 
+# Modal list prices (USD/second, https://modal.com/pricing): GPU + the container's
+# CPU (0.125 core minimum) and declared memory. Used to store a per-generation cost.
+GPU_USD_PER_SEC = 0.000306
+CPU_USD_PER_SEC = 0.125 * 0.0000131
+MEMORY_GIB = 16
+MEMORY_USD_PER_SEC = MEMORY_GIB * 0.00000222
+
+
+def run_cost_usd(processing_time_ms: int) -> float:
+    """Cost of the active function runtime (excludes cold start and idle scaledown)."""
+    rate = GPU_USD_PER_SEC + CPU_USD_PER_SEC + MEMORY_USD_PER_SEC
+    return round(processing_time_ms / 1000 * rate, 6)
+
+
 @app.cls(
     image=image,
     gpu="A10G",
@@ -340,9 +354,16 @@ class TTSGenerator:
                 # Update completion with URL
                 cur.execute(
                     """UPDATE generations
-                       SET status = %s, output_url = %s, processing_time_ms = %s, completed_at = NOW()
+                       SET status = %s, output_url = %s, processing_time_ms = %s,
+                           cost_usd = %s, completed_at = NOW()
                        WHERE id = %s""",
-                    (status, output_url, processing_time_ms, job_id),
+                    (
+                        status,
+                        output_url,
+                        processing_time_ms,
+                        run_cost_usd(processing_time_ms or 0),
+                        job_id,
+                    ),
                 )
             elif status == "failed":
                 # Update failure with error

@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { useDeleteGeneration, useGenerations } from "@/hooks/useGeneration";
 import { formatDistanceToNow } from "@/lib/date-utils";
+import { formatCostUsd } from "@/lib/format-cost";
 import { cn } from "@/lib/utils";
 
 const typeIcons = {
@@ -282,7 +283,17 @@ export default function GalleryPage() {
                       <Icon className={cn("h-3.5 w-3.5", iconColor)} />
                       <span className="capitalize font-semibold">{gen.type}</span>
                     </div>
-                    <span>{formatDistanceToNow(gen.createdAt)}</span>
+                    <div className="flex items-center gap-2">
+                      {formatCostUsd(gen.costUsd) && (
+                        <span
+                          className="font-semibold text-cyan-400"
+                          title="Modal compute cost for this generation"
+                        >
+                          {formatCostUsd(gen.costUsd)}
+                        </span>
+                      )}
+                      <span>{formatDistanceToNow(gen.createdAt)}</span>
+                    </div>
                   </div>
 
                   {/* Model */}
