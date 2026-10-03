@@ -8,6 +8,7 @@ import type { z } from "zod";
 import { AudioPreview } from "@/components/generation/AudioPreview";
 import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
+import { ParamControls } from "@/components/generation/ParamControls";
 import { PromptInput } from "@/components/generation/PromptInput";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,11 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCancelGeneration, useGenerateAudio } from "@/hooks/useGeneration";
 import { useGenerationStream } from "@/hooks/useGenerationStream";
 import { formatDistanceToNow } from "@/lib/date-utils";
+import { MUSIC_PARAMS, TTS_PARAMS } from "@/lib/model-params";
 import { audioGenerationSchema } from "@/lib/validation";
 import { type AudioParams, useGenerationStore } from "@/store/generation-store";
 
@@ -60,26 +61,19 @@ export default function AudioGenerationPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(audioGenerationSchema),
-    defaultValues: {
-      variant: audioParams.variant,
-      prompt: audioParams.prompt,
-      duration: audioParams.duration,
-      guidanceScale: audioParams.guidanceScale,
-      text: audioParams.text,
-      voicePreset: audioParams.voicePreset || "ryan",
-      voiceReferenceUrl: audioParams.voiceReferenceUrl,
-      language: audioParams.language,
-      speed: audioParams.speed,
-    },
+    defaultValues: { ...audioParams, voicePreset: audioParams.voicePreset || "ryan" },
   });
 
   const prompt = watch("prompt") ?? "";
   const text = watch("text") ?? "";
-  const duration = watch("duration") ?? 30;
   const voicePreset = watch("voicePreset") ?? "ryan";
   const voiceReferenceUrl = watch("voiceReferenceUrl");
-  const _language = watch("language") ?? "en";
-  const speed = watch("speed") ?? 1.0;
+  const values = watch();
+  const setParams = (patch: Record<string, unknown>) => {
+    for (const [key, value] of Object.entries(patch)) {
+      setValue(key as keyof FormData, value as never, { shouldDirty: true });
+    }
+  };
 
   // Update parameters when variant changes
   useEffect(() => {
@@ -126,24 +120,13 @@ export default function AudioGenerationPage() {
         return;
       }
 
-      // Create params object
-      const params: AudioParams = {
-        variant: data.variant,
+      // Save params to store, then start generation
+      setAudioParams({
+        ...data,
         prompt: data.prompt ?? "",
-        duration: data.duration ?? 30,
-        guidanceScale: data.guidanceScale ?? 3.0,
-        text: data.text,
-        voicePreset: data.voicePreset,
-        voiceReferenceUrl: data.voiceReferenceUrl,
         language: data.language ?? "en",
-        speed: data.speed ?? 1.0,
-      };
-
-      // Save params to store
-      setAudioParams(params);
-
-      // Start generation
-      const result = await generateMutation.mutateAsync(audioGenerationSchema.parse(data));
+      });
+      const result = await generateMutation.mutateAsync(data);
 
       // Track the job
       const jobId = result.jobId;
@@ -249,27 +232,12 @@ export default function AudioGenerationPage() {
         </h3>
 
         {variant === "music" ? (
-          <>
-            {/* Duration */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Duration</Label>
-                <span className="text-sm text-foreground/60 mono">{duration}s</span>
-              </div>
-              <Slider
-                value={duration}
-                onValueChange={(value) => setValue("duration", value)}
-                min={10}
-                max={60}
-                step={5}
-                disabled={isGenerating}
-                className="w-full"
-              />
-              <p className="text-xs text-foreground/50">
-                Length of generated audio (10-60 seconds)
-              </p>
-            </div>
-          </>
+          <ParamControls
+            defs={MUSIC_PARAMS}
+            values={values}
+            onChange={setParams}
+            disabled={isGenerating}
+          />
         ) : (
           <>
             {/* Voice Preset */}
@@ -319,23 +287,12 @@ export default function AudioGenerationPage() {
               </div>
             )}
 
-            {/* Speed */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Speed</Label>
-                <span className="text-sm text-foreground/60 mono">{speed.toFixed(1)}x</span>
-              </div>
-              <Slider
-                value={speed}
-                onValueChange={(value) => setValue("speed", value)}
-                min={0.5}
-                max={2.0}
-                step={0.1}
-                disabled={isGenerating}
-                className="w-full"
-              />
-              <p className="text-xs text-foreground/50">Playback speed (0.5x - 2.0x)</p>
-            </div>
+            <ParamControls
+              defs={TTS_PARAMS}
+              values={values}
+              onChange={setParams}
+              disabled={isGenerating}
+            />
           </>
         )}
       </div>

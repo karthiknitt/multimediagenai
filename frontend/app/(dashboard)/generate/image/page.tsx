@@ -9,12 +9,13 @@ import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ImagePreview } from "@/components/generation/ImagePreview";
 import { imageModels, ModelSelector } from "@/components/generation/ModelSelector";
-import { ParameterPanel } from "@/components/generation/ParameterPanel";
+import { ParamControls } from "@/components/generation/ParamControls";
 import { PromptInput } from "@/components/generation/PromptInput";
 import { SecureThumbnail } from "@/components/generation/SecureThumbnail";
 import { useCancelGeneration, useGenerateImage } from "@/hooks/useGeneration";
 import { useGenerationStream } from "@/hooks/useGenerationStream";
 import { formatDistanceToNow } from "@/lib/date-utils";
+import { IMAGE_PARAMS } from "@/lib/model-params";
 import { imageGenerationSchema } from "@/lib/validation";
 import { type ImageParams, useGenerationStore } from "@/store/generation-store";
 
@@ -37,39 +38,12 @@ export default function ImageGenerationPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(imageGenerationSchema),
-    defaultValues: {
-      prompt: imageParams.prompt,
-      model: imageParams.model,
-      steps: imageParams.steps,
-      cfgScale: imageParams.cfgScale,
-      width: imageParams.width,
-      height: imageParams.height,
-      seed: imageParams.seed,
-      negativePrompt: imageParams.negativePrompt,
-    },
+    defaultValues: imageParams,
   });
 
   const prompt = watch("prompt") ?? "";
   const model = watch("model") ?? "z-image-turbo";
-  const steps = watch("steps") ?? 9;
-  const cfgScale = watch("cfgScale") ?? 0;
-  const width = watch("width") ?? 1024;
-  const height = watch("height") ?? 1024;
-  const seed = watch("seed");
-  const negativePrompt = watch("negativePrompt");
-
-  // Update parameters when model changes
-  useEffect(() => {
-    const modelDefaults = {
-      "z-image-turbo": { steps: 9, cfgScale: 0 },
-    };
-
-    const defaults = modelDefaults[model as keyof typeof modelDefaults];
-    if (defaults) {
-      setValue("steps", defaults.steps);
-      setValue("cfgScale", defaults.cfgScale);
-    }
-  }, [model, setValue]);
+  const values = watch();
 
   // SSE stream for progress updates
   const { lastEvent, isConnected } = useGenerationStream(activeJobId, {
@@ -101,32 +75,9 @@ export default function ImageGenerationPage() {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      // Create params object with required fields
-      const params: ImageParams = {
-        prompt: data.prompt,
-        model: data.model ?? "z-image-turbo",
-        steps: data.steps ?? 9,
-        cfgScale: data.cfgScale ?? 0,
-        width: data.width ?? 1024,
-        height: data.height ?? 1024,
-        seed: data.seed,
-        negativePrompt: data.negativePrompt,
-      };
-
-      // Save params to store
-      setImageParams(params);
-
-      // Start generation
-      const result = await generateMutation.mutateAsync({
-        prompt: params.prompt,
-        model: params.model,
-        steps: params.steps,
-        cfgScale: params.cfgScale,
-        width: params.width,
-        height: params.height,
-        seed: params.seed,
-        negativePrompt: params.negativePrompt,
-      });
+      // Save params to store, then start generation
+      setImageParams({ ...data, model: data.model ?? "z-image-turbo" });
+      const result = await generateMutation.mutateAsync(data);
 
       // Track the job
       const jobId = result.jobId;
@@ -138,7 +89,7 @@ export default function ImageGenerationPage() {
         type: "image",
         status: "pending",
         progress: 0,
-        prompt: params.prompt,
+        prompt: data.prompt,
         createdAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -204,23 +155,21 @@ export default function ImageGenerationPage() {
         />
       </div>
 
-      <ParameterPanel
-        steps={steps}
-        onStepsChange={(value) => setValue("steps", value)}
-        cfgScale={cfgScale}
-        onCfgScaleChange={(value) => setValue("cfgScale", value)}
-        width={width}
-        height={height}
-        onResolutionChange={(w, h) => {
-          setValue("width", w);
-          setValue("height", h);
-        }}
-        seed={seed}
-        onSeedChange={(value) => setValue("seed", value)}
-        negativePrompt={negativePrompt}
-        onNegativePromptChange={(value) => setValue("negativePrompt", value)}
-        disabled={isGenerating}
-      />
+      <div className="card-premium p-6">
+        <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+          Parameters
+        </h3>
+        <ParamControls
+          defs={IMAGE_PARAMS}
+          values={values}
+          onChange={(patch) => {
+            for (const [key, value] of Object.entries(patch)) {
+              setValue(key as keyof FormData, value as never, { shouldDirty: true });
+            }
+          }}
+          disabled={isGenerating}
+        />
+      </div>
     </div>
   );
 

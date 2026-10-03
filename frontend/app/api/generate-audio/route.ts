@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { modalHeaders } from "@/lib/modal";
 import { dispatchModalJob } from "@/lib/modal-job";
+import { MUSIC_PARAMS, TTS_PARAMS, toModalParams } from "@/lib/model-params";
 import { audioGenerationSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
@@ -64,10 +65,7 @@ export async function POST(request: NextRequest) {
       modalRequest = {
         job_id: jobId,
         prompt: validatedData.prompt!,
-        parameters: {
-          duration: validatedData.duration,
-          lyrics: validatedData.lyrics,
-        },
+        parameters: toModalParams(MUSIC_PARAMS, validatedData),
       };
       modelName = "ace-step-1.5";
     } else {
@@ -81,6 +79,7 @@ export async function POST(request: NextRequest) {
           validatedData.voicePreset === "custom" ? validatedData.voiceReferenceUrl : undefined,
         language: validatedData.language,
         speed: validatedData.speed,
+        parameters: toModalParams(TTS_PARAMS, validatedData),
       };
       modelName = "qwen3-tts";
     }

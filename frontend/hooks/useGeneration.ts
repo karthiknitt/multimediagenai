@@ -2,9 +2,9 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  AudioGenerationInput,
-  ImageGenerationInput,
-  VideoGenerationInput,
+  AudioGenerationRequest,
+  ImageGenerationRequest,
+  VideoGenerationRequest,
 } from "@/lib/validation";
 
 // Types for API responses
@@ -57,7 +57,7 @@ async function fetchGeneration(id: string): Promise<GenerationResponse> {
   return response.json();
 }
 
-async function generateImage(input: ImageGenerationInput): Promise<{ jobId: string }> {
+async function generateImage(input: ImageGenerationRequest): Promise<{ jobId: string }> {
   const response = await fetch("/api/generate-direct", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,7 +70,7 @@ async function generateImage(input: ImageGenerationInput): Promise<{ jobId: stri
   return response.json();
 }
 
-async function generateVideo(input: VideoGenerationInput): Promise<{ jobId: string }> {
+async function generateVideo(input: VideoGenerationRequest): Promise<{ jobId: string }> {
   const response = await fetch("/api/generate-video", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -83,7 +83,7 @@ async function generateVideo(input: VideoGenerationInput): Promise<{ jobId: stri
   return response.json();
 }
 
-async function generateAudio(input: AudioGenerationInput): Promise<{ jobId: string }> {
+async function generateAudio(input: AudioGenerationRequest): Promise<{ jobId: string }> {
   const response = await fetch("/api/generate-audio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

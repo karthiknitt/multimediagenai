@@ -1,22 +1,13 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { modalHeaders } from "@/lib/modal";
 import { dispatchModalJob } from "@/lib/modal-job";
-
-// Schema for video generation requests
-const generateVideoRequestSchema = z.object({
-  prompt: z.string().min(3).max(2000),
-  variant: z.enum(["text2video", "img2video"]),
-  numFrames: z.number().min(5).max(121).default(81),
-  cfgScale: z.number().min(1).max(20).default(4.0),
-  seed: z.number().optional(),
-  sourceImageUrl: z.string().url().optional(),
-});
+import { toModalParams, VIDEO_PARAMS } from "@/lib/model-params";
+import { videoGenerationSchema } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validationResult = generateVideoRequestSchema.safeParse(body);
+    const validationResult = videoGenerationSchema.safeParse(body);
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -94,11 +85,7 @@ export async function POST(request: NextRequest) {
     const modalPayload: Record<string, unknown> = {
       job_id: jobId,
       prompt: data.prompt,
-      parameters: {
-        num_frames: data.numFrames,
-        cfg_scale: data.cfgScale,
-        seed: data.seed,
-      },
+      parameters: toModalParams(VIDEO_PARAMS, data),
     };
     if (data.variant === "img2video" && data.sourceImageUrl) {
       modalPayload.image_url = data.sourceImageUrl;

@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { modalHeaders } from "@/lib/modal";
 import { dispatchModalJob } from "@/lib/modal-job";
+import { schemaFromDefs, TTS_PARAMS, toModalParams } from "@/lib/model-params";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +21,15 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { text, voiceReferenceUrl, language = "en", speed = 1.0 } = body;
+    const { text, voiceReferenceUrl, language = "en" } = body;
+    const tuning = schemaFromDefs(TTS_PARAMS).safeParse(body);
+    if (!tuning.success) {
+      return NextResponse.json(
+        { error: "Invalid parameters", details: tuning.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const speed = tuning.data.speed;
 
     // Validate input
     if (!text || typeof text !== "string") {
@@ -49,7 +58,7 @@ export async function POST(request: NextRequest) {
       prompt: text,
       parameters: {
         language,
-        speed,
+        ...tuning.data,
         voiceReferenceUrl,
       },
       status: "processing",
@@ -66,6 +75,7 @@ export async function POST(request: NextRequest) {
         voice_reference_url: voiceReferenceUrl,
         language,
         speed,
+        parameters: toModalParams(TTS_PARAMS, tuning.data),
       },
       markFailed: async (message) => {
         await db
