@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/lib/auth-client";
+import { signOutAndRedirect } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/user-store";
 
@@ -29,10 +29,6 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useUserStore();
-
-  const handleSignOut = async () => {
-    await signOut();
-  };
 
   return (
     <>
@@ -147,7 +143,7 @@ export function Sidebar() {
           <button
             type="button"
             className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground/60 hover:text-foreground hover:glass hover:border hover:border-foreground/10 transition-all"
-            onClick={handleSignOut}
+            onClick={signOutAndRedirect}
           >
             <div className="p-1.5 rounded-lg bg-foreground/5">
               <LogOut className="h-5 w-5" />

@@ -4,7 +4,7 @@ import { BarChart3, Bell, LogOut, Search, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOutAndRedirect, useSession } from "@/lib/auth-client";
 
 export function Header() {
   const { data: session } = useSession();
@@ -103,7 +103,7 @@ export function Header() {
                     type="button"
                     role="menuitem"
                     className={itemClass}
-                    onClick={() => signOut()}
+                    onClick={signOutAndRedirect}
                   >
                     <LogOut className="h-4 w-4 text-red-400" />
                     Sign out
