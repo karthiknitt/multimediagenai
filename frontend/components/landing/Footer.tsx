@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowRight, Github, Heart, Linkedin, Mail, Sparkles, Twitter } from "lucide-react";
+import { ArrowRight, Heart, Mail, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { FaGithub, FaLinkedinIn, FaXTwitter } from "react-icons/fa6";
 import { Input } from "@/components/ui/input";
 
 const navigation = {
@@ -33,9 +34,9 @@ const navigation = {
 };
 
 const social = [
-  { name: "GitHub", href: "https://github.com", icon: Github },
-  { name: "Twitter", href: "https://twitter.com", icon: Twitter },
-  { name: "LinkedIn", href: "https://linkedin.com", icon: Linkedin },
+  { name: "GitHub", href: "https://github.com", icon: FaGithub },
+  { name: "X", href: "https://x.com", icon: FaXTwitter },
+  { name: "LinkedIn", href: "https://linkedin.com", icon: FaLinkedinIn },
 ];
 
 export function Footer() {

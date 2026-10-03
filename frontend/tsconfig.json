@@ -20,7 +20,8 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "target": "ES2017"
+    "target": "ES2017",
+    "types": ["bun", "node", "react", "react-dom"]
   },
   "include": [
     "next-env.d.ts",
