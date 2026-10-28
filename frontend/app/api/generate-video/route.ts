@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isAllowedMediaUrl } from "@/lib/media-url";
 import { modalHeaders } from "@/lib/modal";
 import { dispatchModalJob } from "@/lib/modal-job";
 import { toModalParams, VIDEO_PARAMS } from "@/lib/model-params";
@@ -46,6 +47,13 @@ export async function POST(request: NextRequest) {
     if (data.variant === "img2video" && !data.sourceImageUrl) {
       return NextResponse.json(
         { error: "Validation failed", message: "sourceImageUrl is required for img2video variant" },
+        { status: 400 },
+      );
+    }
+
+    if (data.sourceImageUrl && !isAllowedMediaUrl(data.sourceImageUrl, process.env.R2_PUBLIC_URL)) {
+      return NextResponse.json(
+        { error: "Validation failed", message: "Source image must be uploaded through this app" },
         { status: 400 },
       );
     }

@@ -8,9 +8,11 @@ import type {
 } from "@/lib/validation";
 
 // Types for API responses
+export type GenerationType = "image" | "video" | "audio" | "speech" | "transcription" | "model3d";
+
 export interface GenerationResponse {
   id: string;
-  type: "image" | "video" | "audio" | "speech";
+  type: GenerationType;
   status: "pending" | "processing" | "completed" | "failed";
   prompt: string;
   model: string;
@@ -35,7 +37,7 @@ export interface PaginatedGenerations {
 async function fetchGenerations(
   page: number = 1,
   pageSize: number = 20,
-  type?: "image" | "video" | "audio" | "speech",
+  type?: GenerationType,
 ): Promise<PaginatedGenerations> {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -116,11 +118,7 @@ async function deleteGeneration(id: string): Promise<void> {
 }
 
 // Query hooks
-export function useGenerations(
-  page: number = 1,
-  pageSize: number = 20,
-  type?: "image" | "video" | "audio" | "speech",
-) {
+export function useGenerations(page: number = 1, pageSize: number = 20, type?: GenerationType) {
   return useQuery({
     queryKey: ["generations", page, pageSize, type],
     queryFn: () => fetchGenerations(page, pageSize, type),

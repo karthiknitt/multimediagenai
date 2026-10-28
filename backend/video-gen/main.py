@@ -1,4 +1,5 @@
 import logging
+import os
 import tempfile
 
 import modal
@@ -72,19 +73,40 @@ def assert_r2_url(url: str) -> None:
         raise ValueError("URL must point to this project's R2 storage")
 
 
-def fetch_r2_bytes(url: str, timeout: int = 30) -> bytes:
-    """Download a file from R2 with origin check, no redirects and a size cap."""
-    import requests
+def r2_key_from_url(url: str) -> str:
+    """Object key of a user upload URL. Only `uploads/` keys on our R2 origin are accepted."""
+    from urllib.parse import unquote, urlsplit
 
     assert_r2_url(url)
-    with requests.get(url, timeout=timeout, stream=True, allow_redirects=False) as r:
-        r.raise_for_status()
-        data = bytearray()
-        for chunk in r.iter_content(1 << 20):
-            data.extend(chunk)
-            if len(data) > MAX_FETCH_BYTES:
-                raise ValueError("Downloaded file exceeds size limit")
-        return bytes(data)
+    path = unquote(urlsplit(url).path).lstrip("/")
+    bucket = os.environ.get("R2_BUCKET_NAME", "")
+    if bucket and path.startswith(bucket + "/"):
+        path = path[len(bucket) + 1 :]
+    if not path.startswith("uploads/") or ".." in path.split("/"):
+        raise ValueError("URL must point to a file uploaded through this app")
+    return path
+
+
+def fetch_r2_bytes(client, bucket: str, url: str, max_bytes: int = MAX_FETCH_BYTES) -> bytes:
+    """Read an uploaded file with the authenticated R2 client (the bucket is not public)."""
+    obj = client.get_object(Bucket=bucket, Key=r2_key_from_url(url))
+    if obj["ContentLength"] > max_bytes:
+        raise ValueError("Uploaded file exceeds size limit")
+    return obj["Body"].read(max_bytes + 1)
+
+
+def _r2_client():
+    import boto3
+    from botocore.client import Config
+
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+        aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+        config=Config(signature_version="s3v4"),
+        region_name="auto",
+    )
 
 
 def _clamp_num(params, key, default, lo, hi, cast=float):
@@ -354,7 +376,9 @@ class VideoGenerator:
         try:
             # Download source image
             self._update_db(job_id, "processing", 5, "Downloading source image...")
-            source_image = Image.open(BytesIO(fetch_r2_bytes(image_url))).convert("RGB")
+            source_image = Image.open(
+                BytesIO(fetch_r2_bytes(_r2_client(), os.environ["R2_BUCKET_NAME"], image_url))
+            ).convert("RGB")
 
             self._update_db(job_id, "processing", 15, "Loading Wan2.2 image-to-video model...")
             pipe = self._load_i2v()

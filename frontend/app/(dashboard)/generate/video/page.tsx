@@ -10,9 +10,9 @@ import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ParamControls } from "@/components/generation/ParamControls";
 import { PromptInput } from "@/components/generation/PromptInput";
+import { UploadField } from "@/components/generation/UploadField";
 import { VideoPreview } from "@/components/generation/VideoPreview";
 import { VideoThumbnail } from "@/components/generation/VideoThumbnail";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCancelGeneration, useGenerateVideo } from "@/hooks/useGeneration";
@@ -294,23 +294,20 @@ export default function VideoGenerationPage() {
               )}
             </div>
 
-            {/* Image URL input for img2video */}
+            {/* Source image for img2video */}
             {variant === "img2video" && (
               <div className="card-premium p-6 space-y-3">
                 <Label className="text-sm font-medium flex items-center gap-2">
                   <Upload className="h-4 w-4" />
-                  Source Image URL
+                  Source Image
                 </Label>
-                <Input
-                  type="url"
-                  value={sourceImageUrl ?? ""}
-                  onChange={(e) => setValue("sourceImageUrl", e.target.value || undefined)}
-                  placeholder="https://example.com/image.jpg"
+                <UploadField
+                  kind="image"
+                  value={sourceImageUrl}
+                  onChange={(url) => setValue("sourceImageUrl", url, { shouldValidate: true })}
                   disabled={isGenerating}
+                  hint="PNG, JPEG or WebP, up to 10 MB. The video animates this image."
                 />
-                <p className="text-xs text-foreground/50">
-                  Provide a publicly accessible image URL to animate
-                </p>
                 {errors.sourceImageUrl && (
                   <p className="text-sm text-red-400" role="alert">
                     {errors.sourceImageUrl.message}

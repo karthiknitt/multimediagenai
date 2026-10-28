@@ -11,7 +11,7 @@ import { GenerationLayout } from "@/components/generation/GenerationLayout";
 import { GenerationProgress } from "@/components/generation/GenerationProgress";
 import { ParamControls } from "@/components/generation/ParamControls";
 import { PromptInput } from "@/components/generation/PromptInput";
-import { Input } from "@/components/ui/input";
+import { UploadField } from "@/components/generation/UploadField";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -274,17 +274,14 @@ export default function AudioGenerationPage() {
             {/* Custom Voice URL (only if "custom" selected) */}
             {voicePreset === "custom" && (
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Voice Reference URL</Label>
-                <Input
-                  type="url"
-                  value={voiceReferenceUrl ?? ""}
-                  onChange={(e) => setValue("voiceReferenceUrl", e.target.value || undefined)}
-                  placeholder="https://example.com/voice.wav"
+                <Label className="text-sm font-medium">Voice Reference</Label>
+                <UploadField
+                  kind="audio"
+                  value={voiceReferenceUrl}
+                  onChange={(url) => setValue("voiceReferenceUrl", url)}
                   disabled={isGenerating}
+                  hint="A clean 3-10s voice clip for voice cloning"
                 />
-                <p className="text-xs text-foreground/50">
-                  Provide a clean 3-10s voice clip (WAV/MP3) for voice cloning
-                </p>
               </div>
             )}
 

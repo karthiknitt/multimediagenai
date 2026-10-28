@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { generations } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isAllowedMediaUrl } from "@/lib/media-url";
 import { modalHeaders } from "@/lib/modal";
 import { dispatchModalJob } from "@/lib/modal-job";
 import { MUSIC_PARAMS, TTS_PARAMS, toModalParams } from "@/lib/model-params";
@@ -37,6 +38,15 @@ export async function POST(request: NextRequest) {
       );
     }
     const validatedData = parsed.data;
+    if (
+      validatedData.voiceReferenceUrl &&
+      !isAllowedMediaUrl(validatedData.voiceReferenceUrl, process.env.R2_PUBLIC_URL)
+    ) {
+      return NextResponse.json(
+        { error: "Voice reference must be uploaded through this app" },
+        { status: 400 },
+      );
+    }
 
     // Generate UUID for the job
     const jobId = uuidv4();

@@ -15,7 +15,7 @@ def load(app_dir: str):
     return mod
 
 
-@pytest.fixture(params=["video-gen", "tts-gen"])
+@pytest.fixture(params=["video-gen", "tts-gen", "indic-speech", "image-to-3d"])
 def mod(request, monkeypatch):
     monkeypatch.setenv("R2_PUBLIC_URL", "https://pub-abc123.r2.dev")
     return load(request.param)
