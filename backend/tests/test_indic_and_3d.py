@@ -145,3 +145,26 @@ class TestUploadKey:
 
         with pytest.raises(ValueError):
             keymod.fetch_r2_bytes(Client(), "my-bucket", f"{self.base}/uploads/u/d/a.png")
+
+
+class TestPeakNormalize:
+    def test_quiet_speech_is_raised_to_target_peak(self, indic):
+        np = pytest.importorskip("numpy")
+        quiet = (np.sin(np.linspace(0, 200, 24000)) * 0.21).astype(np.float32)
+        out = indic.peak_normalize(quiet)
+        assert abs(float(np.max(np.abs(out))) - 0.9) < 1e-3
+
+    def test_loud_audio_never_clips(self, indic):
+        np = pytest.importorskip("numpy")
+        out = indic.peak_normalize(np.array([0.0, 2.5, -3.0], dtype=np.float32))
+        assert float(np.max(np.abs(out))) <= 1.0
+
+    def test_silence_and_empty_untouched(self, indic):
+        np = pytest.importorskip("numpy")
+        assert float(np.max(np.abs(indic.peak_normalize(np.zeros(100))))) == 0.0
+        assert indic.peak_normalize(np.array([])).size == 0
+
+    def test_gain_is_capped(self, indic):
+        np = pytest.importorskip("numpy")
+        faint = np.array([0.001, -0.001], dtype=np.float32)
+        assert float(np.max(np.abs(indic.peak_normalize(faint)))) <= 0.001 * 8 + 1e-6

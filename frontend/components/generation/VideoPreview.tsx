@@ -62,25 +62,17 @@ export function VideoPreview({
     }
   };
 
-  const handleDownload = async () => {
-    if (!videoUrl) return;
-
-    try {
-      // Pre-signed URL already has authentication, can download directly
-      const response = await fetch(videoUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `video-generation-${Date.now()}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      onDownload?.();
-    } catch (error) {
-      console.error("Download failed:", error);
-    }
+  // The presigned R2 URL sends no CORS headers, so fetch() on it is blocked in the browser;
+  // download through the same-origin, owner-checked route instead.
+  const handleDownload = () => {
+    if (!generationId) return;
+    const a = document.createElement("a");
+    a.href = `/api/generations/${generationId}/download`;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    onDownload?.();
   };
 
   const handleCopyUrl = async () => {
