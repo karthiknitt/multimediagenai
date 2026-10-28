@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  Box,
   FolderOpen,
   Image,
+  Languages,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -23,6 +25,13 @@ const navigation = [
   { name: "Image Generation", href: "/generate/image", icon: Image, color: "text-cyan-400" },
   { name: "Video Generation", href: "/generate/video", icon: Video, color: "text-magenta-400" },
   { name: "Audio Generation", href: "/generate/audio", icon: Music, color: "text-blue-400" },
+  {
+    name: "Indic Speech",
+    href: "/generate/indic-speech",
+    icon: Languages,
+    color: "text-green-400",
+  },
+  { name: "Image to 3D", href: "/generate/model3d", icon: Box, color: "text-purple-400" },
   { name: "Gallery", href: "/gallery", icon: FolderOpen, color: "text-foreground/60" },
 ];
 

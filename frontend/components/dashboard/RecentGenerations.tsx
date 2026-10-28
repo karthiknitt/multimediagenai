@@ -40,6 +40,12 @@ function getVariantLabel(gen: any): string {
   if (gen.type === "speech") {
     return "Speech";
   }
+  if (gen.type === "transcription") {
+    return "Transcript";
+  }
+  if (gen.type === "model3d") {
+    return "3D model";
+  }
   return gen.type;
 }
 

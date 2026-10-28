@@ -18,6 +18,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
     "@aws-sdk/s3-request-presigner": "^3.1146.0",
+    "@google/model-viewer": "^4.4.0",
     "@hookform/resolvers": "^5.9.1",
     "@neondatabase/serverless": "^1.2.0",
     "@radix-ui/react-select": "^2.3.7",

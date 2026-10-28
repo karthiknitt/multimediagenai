@@ -600,6 +600,99 @@ export const TTS_PARAMS = [
   },
 ] as const satisfies readonly ParamDef[];
 
+// ---------------------------------------------------------------- Indic speech (Maya 2 Native)
+export const INDIC_TTS_PARAMS = [
+  {
+    key: "normalize",
+    label: "Normalize text",
+    kind: "switch",
+    default: true,
+    help: "Expand numbers, dates and abbreviations before speaking.",
+  },
+] as const satisfies readonly ParamDef[];
+
+// ---------------------------------------------------------------- Indic STT (IndicConformer)
+export const INDIC_STT_PARAMS = [
+  {
+    key: "decoding",
+    label: "Decoder",
+    kind: "select",
+    default: "ctc",
+    options: [
+      { value: "ctc", label: "CTC (fast)" },
+      { value: "rnnt", label: "RNN-T" },
+    ],
+    help: "IndicConformer is a hybrid model: both decoders share the same encoder.",
+  },
+] as const satisfies readonly ParamDef[];
+
+// ---------------------------------------------------------------- Image to 3D (Hunyuan3D-2-mini + Hi3D)
+export const MODEL3D_PARAMS = [
+  {
+    key: "resolution",
+    label: "Refinement resolution",
+    kind: "select",
+    default: "1024",
+    options: [
+      { value: "512", label: "512 (faster)" },
+      { value: "1024", label: "1024 (detailed)" },
+    ],
+    when: (v) => v.refine !== false,
+    help: "Hi3D sparse-grid resolution. 1536 is not offered: it was only validated on a 96 GB GPU.",
+  },
+  {
+    key: "refine",
+    label: "Refine with Hi3D",
+    kind: "switch",
+    default: true,
+    help: "Off = return the Hunyuan3D coarse mesh only (quicker, less detail).",
+  },
+  {
+    key: "removeBackground",
+    label: "Remove background",
+    kind: "switch",
+    default: true,
+    help: "Turn off if your photo already has a clean or transparent background.",
+  },
+  { key: "seed", label: "Seed", kind: "seed", advanced: true, help: "Empty = 0 (deterministic)." },
+  {
+    key: "coarseSteps",
+    label: "Coarse steps",
+    kind: "slider",
+    min: 10,
+    max: 50,
+    step: 1,
+    integer: true,
+    default: 30,
+    advanced: true,
+    group: "Hunyuan3D",
+  },
+  {
+    key: "guidanceScale",
+    label: "Guidance scale",
+    kind: "slider",
+    min: 1,
+    max: 10,
+    step: 0.5,
+    default: 5,
+    advanced: true,
+    group: "Hunyuan3D",
+  },
+  {
+    key: "refineSteps",
+    label: "Refine steps",
+    kind: "slider",
+    min: 10,
+    max: 50,
+    step: 1,
+    integer: true,
+    default: 25,
+    advanced: true,
+    group: "Hi3D",
+    when: (v) => v.refine !== false,
+  },
+] as const satisfies readonly ParamDef[];
+
 // ---------------------------------------------------------------- helpers
 
 /** `cfgScale2` -> `cfg_scale_2`, `lmTopK` -> `lm_top_k` */

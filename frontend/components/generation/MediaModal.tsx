@@ -2,17 +2,29 @@
 
 import { Download, X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { ModelViewer } from "@/components/generation/ModelViewer";
+import { TranscriptPreview } from "@/components/generation/TranscriptPreview";
 
 interface MediaModalProps {
-  type: "image" | "video";
+  type: "image" | "video" | "model3d" | "transcription";
+  /** image/video URL; for model3d the same-origin /api/media URL */
   src: string;
+  /** required for transcription */
+  generationId?: string;
   title: string;
   downloadHref?: string;
   onClose: () => void;
 }
 
 /** Full-size viewer: the image at full resolution, or the video with controls. */
-export function MediaModal({ type, src, title, downloadHref, onClose }: MediaModalProps) {
+export function MediaModal({
+  type,
+  src,
+  title,
+  generationId,
+  downloadHref,
+  onClose,
+}: MediaModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -71,13 +83,14 @@ export function MediaModal({ type, src, title, downloadHref, onClose }: MediaMod
             </button>
           </div>
         </div>
-        {type === "image" ? (
+        {type === "image" && (
           <img
             src={src}
             alt={title}
             className="max-h-[85vh] max-w-full rounded-lg object-contain"
           />
-        ) : (
+        )}
+        {type === "video" && (
           <video
             src={src}
             controls
@@ -88,6 +101,16 @@ export function MediaModal({ type, src, title, downloadHref, onClose }: MediaMod
           >
             <track kind="captions" />
           </video>
+        )}
+        {type === "model3d" && (
+          <div className="h-[80vh] w-[min(90vw,900px)] rounded-lg bg-gradient-to-b from-white/5 to-white/10">
+            <ModelViewer src={src} alt={title} className="h-full w-full" />
+          </div>
+        )}
+        {type === "transcription" && generationId && (
+          <div className="max-h-[80vh] w-[min(90vw,700px)] overflow-auto">
+            <TranscriptPreview generationId={generationId} />
+          </div>
         )}
       </div>
     </div>

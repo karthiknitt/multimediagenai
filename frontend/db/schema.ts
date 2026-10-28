@@ -65,7 +65,9 @@ export const generations = pgTable("generations", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["image", "video", "audio", "speech"] }).notNull(),
+  type: text("type", {
+    enum: ["image", "video", "audio", "speech", "transcription", "model3d"],
+  }).notNull(),
   model: text("model").notNull(),
   prompt: text("prompt").notNull(),
   parameters: jsonb("parameters"),

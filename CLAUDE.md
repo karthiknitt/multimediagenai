@@ -20,6 +20,8 @@ docs/       Plans and (archived) status reports. docs/plans/ holds current plans
 | `backend/video-gen` | `video-generation` | Wan2.2 T2V-A14B / I2V-A14B (16 fps, frames = 4k+1) | H100 |
 | `backend/audio-gen` | `audio-generation` | ACE-Step 1.5 turbo (+ optional 5Hz LM planner) | L40S |
 | `backend/tts-gen` | `tts-generation` | Qwen3-TTS (presets + voice cloning) | A10G |
+| `backend/indic-speech` | `indic-speech` | Maya 2 Native (TTS) + IndicConformer (STT), Indian languages | A10G / T4 |
+| `backend/image-to-3d` | `image-to-3d` | Hunyuan3D-2-mini coarse mesh -> Hi3D v1.0 refine (GLB) | H100 |
 
 Conventions that are easy to get wrong:
 - Every endpoint is `@modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)`. Callers must send `Modal-Key` / `Modal-Secret` (see `frontend/lib/modal.ts`).

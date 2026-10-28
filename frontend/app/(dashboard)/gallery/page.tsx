@@ -2,7 +2,9 @@
 
 import {
   AlertCircle,
+  Box,
   Download,
+  FileText,
   Filter,
   Image,
   Loader2,
@@ -24,6 +26,8 @@ const typeIcons = {
   video: Video,
   audio: Music,
   speech: Mic,
+  transcription: FileText,
+  model3d: Box,
 };
 
 const typeColors = {
@@ -31,6 +35,8 @@ const typeColors = {
   video: "text-magenta-400",
   audio: "text-blue-400",
   speech: "text-green-400",
+  transcription: "text-amber-400",
+  model3d: "text-purple-400",
 };
 
 const typeGradients = {
@@ -38,9 +44,11 @@ const typeGradients = {
   video: "from-magenta-500/20 to-purple-500/20",
   audio: "from-blue-500/20 to-cyan-500/20",
   speech: "from-green-500/20 to-emerald-500/20",
+  transcription: "from-amber-500/20 to-orange-500/20",
+  model3d: "from-purple-500/20 to-indigo-500/20",
 };
 
-type MediaType = "all" | "image" | "video" | "audio" | "speech";
+type MediaType = "all" | "image" | "video" | "audio" | "speech" | "transcription" | "model3d";
 
 export default function GalleryPage() {
   const [selectedType, setSelectedType] = useState<MediaType>("all");
@@ -57,7 +65,7 @@ export default function GalleryPage() {
 
   const [viewing, setViewing] = useState<{
     id: string;
-    type: "image" | "video";
+    type: "image" | "video" | "model3d" | "transcription";
     src: string;
     title: string;
   } | null>(null);
@@ -94,6 +102,8 @@ export default function GalleryPage() {
             { value: "video" as MediaType, label: "Videos", icon: Video },
             { value: "audio" as MediaType, label: "Music", icon: Music },
             { value: "speech" as MediaType, label: "Speech", icon: Mic },
+            { value: "transcription" as MediaType, label: "Transcripts", icon: FileText },
+            { value: "model3d" as MediaType, label: "3D", icon: Box },
           ].map((filter) => {
             const Icon = filter.icon;
             const isActive = selectedType === filter.value;
@@ -206,28 +216,39 @@ export default function GalleryPage() {
                       className="h-full w-full"
                     />
                   )}
-                  {(gen.type === "audio" || gen.type === "speech") && (
+                  {(gen.type === "audio" ||
+                    gen.type === "speech" ||
+                    gen.type === "transcription" ||
+                    gen.type === "model3d") && (
                     <div className="flex h-full w-full items-center justify-center">
                       <Icon className={cn("h-16 w-16", iconColor)} />
                     </div>
                   )}
 
                   {/* Click to open image/video full-size in a modal (audio plays inline below) */}
-                  {(gen.type === "image" || gen.type === "video") && gen.outputUrl && (
-                    <button
-                      type="button"
-                      aria-label={`Open ${gen.type}: ${gen.prompt.slice(0, 60)}`}
-                      className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-                      onClick={() =>
-                        setViewing({
-                          id: gen.id,
-                          type: gen.type as "image" | "video",
-                          src: gen.outputUrl as string,
-                          title: gen.prompt,
-                        })
-                      }
-                    />
-                  )}
+                  {(gen.type === "image" ||
+                    gen.type === "video" ||
+                    gen.type === "model3d" ||
+                    gen.type === "transcription") &&
+                    gen.outputUrl && (
+                      <button
+                        type="button"
+                        aria-label={`Open ${gen.type}: ${gen.prompt.slice(0, 60)}`}
+                        className="absolute inset-0 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                        onClick={() =>
+                          setViewing({
+                            id: gen.id,
+                            type: gen.type as "image" | "video" | "model3d" | "transcription",
+                            // 3D models load via a same-origin proxy (no bucket CORS needed)
+                            src:
+                              gen.type === "model3d"
+                                ? `/api/media/${gen.id}`
+                                : (gen.outputUrl as string),
+                            title: gen.prompt,
+                          })
+                        }
+                      />
+                    )}
 
                   {/* Type badge */}
                   <div className="absolute top-3 right-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm">
@@ -336,6 +357,7 @@ export default function GalleryPage() {
           type={viewing.type}
           src={viewing.src}
           title={viewing.title}
+          generationId={viewing.id}
           downloadHref={`/api/generations/${viewing.id}/download`}
           onClose={closeViewer}
         />

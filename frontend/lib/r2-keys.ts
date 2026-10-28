@@ -8,6 +8,8 @@ const EXTENSIONS: Record<string, string> = {
   video: "mp4",
   audio: "wav",
   speech: "wav",
+  transcription: "json",
+  model3d: "glb",
 };
 
 /** Download filename for a generation, preferring the real extension of the stored file. */
