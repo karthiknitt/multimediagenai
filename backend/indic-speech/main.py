@@ -306,6 +306,19 @@ class _JobMixin:
         return f"{public_base}/{key}"
 
 
+def peak_normalize(audio, target: float = 0.9, max_gain: float = 8.0):
+    """Scale speech to a consistent loudness. Maya 2's raw output peaks near -13 dBFS,
+    which is hard to hear on laptop speakers. Silence is left alone and gain is capped
+    so near-silent noise is not blown up."""
+    import numpy as np
+
+    audio = np.asarray(audio, dtype=np.float32)
+    peak = float(np.max(np.abs(audio))) if audio.size else 0.0
+    if peak < 1e-4:
+        return audio
+    return np.clip(audio * min(target / peak, max_gain), -1.0, 1.0)
+
+
 def _date_prefix() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -370,7 +383,6 @@ class IndicTTS(_JobMixin):
         self.tts.close()
 
     def _synthesize(self, text: str, opts: dict) -> bytes:
-        import numpy as np
         import soundfile as sf
 
         audio = self.tts.generate(
@@ -380,7 +392,7 @@ class IndicTTS(_JobMixin):
             normalize=opts["normalize"],
         )
         buffer = io.BytesIO()
-        sf.write(buffer, np.asarray(audio, dtype=np.float32), 24000, format="WAV")
+        sf.write(buffer, peak_normalize(audio), 24000, format="WAV")
         return buffer.getvalue()
 
     @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)

@@ -111,24 +111,17 @@ export function AudioPreview({
     }
   };
 
-  const handleDownload = async () => {
-    if (!audioUrl) return;
-
-    try {
-      const response = await fetch(audioUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `audio-generation-${Date.now()}.wav`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      onDownload?.();
-    } catch (error) {
-      console.error("Download failed:", error);
-    }
+  // The presigned R2 URL sends no CORS headers, so fetch() on it is blocked in the browser.
+  // Download through the same-origin route instead (owner-checked, Content-Disposition: attachment).
+  const handleDownload = () => {
+    if (!generationId) return;
+    const a = document.createElement("a");
+    a.href = `/api/generations/${generationId}/download`;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    onDownload?.();
   };
 
   const handleCopyUrl = async () => {
