@@ -105,7 +105,7 @@ def test_costs_positive(indic, td):
     assert td.run_cost_usd(60_000) > 0
 
 
-@pytest.fixture(params=["indic-speech", "image-to-3d"])
+@pytest.fixture(params=["indic-speech", "image-to-3d", "video-gen", "tts-gen"])
 def keymod(request, monkeypatch):
     monkeypatch.setenv("R2_PUBLIC_URL", "https://acct.r2.cloudflarestorage.com/my-bucket")
     monkeypatch.setenv("R2_BUCKET_NAME", "my-bucket")
