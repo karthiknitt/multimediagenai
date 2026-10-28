@@ -11,9 +11,12 @@ Maya Research has no STT model, hence AI4Bharat for STT. TTS output is a WAV in 
 transcript to R2 (`transcripts/`, `output_url`) and also returns `text`. Voice cloning is not wired up (the Maya 2 clone API is undocumented here).
 
 ## Setup
-1. Accept the terms on the IndicConformer model page, then create the secret:
+1. Accept the terms on the IndicConformer model page, then `hf auth login` and
    `modal secret create huggingface-credentials HF_TOKEN=<token>`
-2. `cd backend/indic-speech && modal run main.py::download_tts_models && modal run main.py::download_stt_models`
-3. `modal deploy main.py` -> two URLs (`generate`, `transcribe`) for the frontend env.
+2. `cd backend/indic-speech && modal run main.py::download_tts_models`
+3. STT is only registered with `DEPLOY_INDIC_STT=1` (so TTS can deploy before the secret exists):
+   `DEPLOY_INDIC_STT=1 modal run main.py::download_stt_models && DEPLOY_INDIC_STT=1 modal deploy main.py`
+   Always deploy with the flag set once STT exists, or the STT endpoint is removed.
 
-Not yet deployed or run on a GPU: image builds (maya3 from git, cu128 torch) are unverified.
+Verified live: Tamil TTS -> STT round trip returns the same sentence (minus punctuation).
+Note: the model card pins `onnxruntime-gpu==1.20.1`, which does not exist; we use 1.20.2.

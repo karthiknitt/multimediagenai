@@ -12,5 +12,4 @@ License: Hi3D Open License 1.0 — commercial use OK, must display "Powered by H
 ## Setup
 `cd backend/image-to-3d && modal run main.py::download_models && modal deploy main.py`
 
-Not yet deployed or run on a GPU: the image build (flash-attn compile, Hi3D constraints, Hunyuan3D-2 requirements)
-and the `hy3dgen` call signatures are unverified.
+Verified live (512 res, ~25 s warm). Hi3D loads from a plain dir (`/models/hi3d`) because it rejects HF cache symlinks.

@@ -100,9 +100,8 @@ stt_image = (
         "torch==2.8.0",
         "torchaudio==2.8.0",
         "transformers",
-        "onnx==1.20.1",
-        "onnxruntime==1.20.1",
-        "onnxruntime-gpu==1.20.1",
+        "onnx",
+        "onnxruntime-gpu==1.20.2",  # the model card's 1.20.1 pin does not exist on PyPI
         "huggingface_hub>=0.34.0",
         *_COMMON_PIP,
     )
